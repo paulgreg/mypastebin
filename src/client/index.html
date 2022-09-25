@@ -26,21 +26,23 @@
     <section>
       <h2>Paste</h2>
       <form>
-        <label>Type :
-          <select name="type">
-            <option value="type_text" selected>text</option>
-            <option value="type_file">file</option>
-          </select>
-        </label>
-        <label>Time to keep data :
-          <select name="keep">
-            <option value="60000">1 minute</option>
-            <option value="300000" selected>5 minutes</option>
-            <option value="3600000">1 hour</option>
-            <option value="43200000">12 hours</option>
-            <option value="86400000">24 hours</option>
-          </select>
-        </label>
+        <div class="options">
+          <label>Type :
+            <select name="type">
+              <option value="type_text" selected>text</option>
+              <option value="type_file">file</option>
+            </select>
+          </label>
+          <label>Time to keep :
+            <select name="keep">
+              <option value="60000">1 minute</option>
+              <option value="300000" selected>5 minutes</option>
+              <option value="3600000">1 hour</option>
+              <option value="43200000">12 hours</option>
+              <option value="86400000">24 hours</option>
+            </select>
+          </label>
+        </div>
         <textarea autocomplete="off" autofocus placeholder="type here what you want to paste..."></textarea>
         <input type="file" />
         <input type="submit" value="post" />
