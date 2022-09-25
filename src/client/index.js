@@ -8,10 +8,14 @@ const templatePastedData = document.querySelector('#templatePastedData')
 const hideErrorPaste = () => (errorPaste.style.display = '')
 const displayErrorPaste = () => (errorPaste.style.display = 'block')
 
+const padZero = (d = 0) => (d < 10 ? `0${d}` : d)
+
 const formatDate = (ms) => {
   const d = new Date(ms)
   const isToday = d.getDate() === new Date().getDate()
-  return `${d.getHours()}:${d.getMinutes()}, ${isToday ? 'today' : 'tomorrow'}`
+  return `${padZero(d.getHours())}:${padZero(d.getMinutes())}, ${
+    isToday ? 'today' : 'tomorrow'
+  }`
 }
 
 const fetchData = () =>
