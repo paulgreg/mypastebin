@@ -8,12 +8,13 @@
   <meta name="author" content="Gr&eacute;gory Paul" />
   <meta name="viewport"
     content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0, user-scalable=no" />
-  <meta name="description" content="A pasting tool" />
-  <meta name="theme-color" content="#FFEFD6" />
+  <meta name="description" content="A simple pasting tool" />
+  <meta name="theme-color" content="#90caf9" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="shortcut icon" href="./pad-128.png" />
   <link type="text/css" rel="stylesheet" href="./simple-v1.min.css" />
   <link type="text/css" rel="stylesheet" href="./index.css" />
+  <script src="./utils.js" defer></script>
   <script src="./index.js" defer></script>
 </head>
 
@@ -25,7 +26,12 @@
     <section>
       <h2>Paste</h2>
       <form>
-        <p class="error paste">An error occured :/</p>
+        <label>Type :
+          <select name="type">
+            <option value="type_text" selected>text</option>
+            <option value="type_file">file</option>
+          </select>
+        </label>
         <label>Time to keep data :
           <select name="keep">
             <option value="60000">1 minute</option>
@@ -35,18 +41,30 @@
             <option value="86400000">24 hours</option>
           </select>
         </label>
-        <textarea required autocomplete="off" autofocus placeholder="type here what you want to paste..."></textarea>
+        <textarea autocomplete="off" autofocus placeholder="type here what you want to paste..."></textarea>
+        <input type="file" />
         <input type="submit" value="post" />
       </form>
+      <p class="error paste"></p>
     </section>
     <section>
       <h2>Pasted content</h2>
-      <div id="parsedData"></div>
+      <div id="pastedData"></div>
       <template id="templatePastedData">
         <article>
           <pre class="data"></pre>
           <small class="until">valid until {}</small>
         </article>
+      </template>
+    </section>
+    <section>
+      <h2>Pasted files</h2>
+      <div id="pastedFiles"></div>
+      <template id="templatePastedFile">
+        <li>
+          <a class="pastedFile">{0}</a>
+          <small class="size">{}</small>, <small class="until">valid until {}</small>
+        </li>
       </template>
     </section>
   </main>

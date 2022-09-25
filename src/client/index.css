@@ -12,6 +12,10 @@ input[type=submit] {
   margin-top: 0;
 }
 
+input[type=file] {
+  display: none;
+}
+
 article {
   margin-bottom: 2em;
 }
