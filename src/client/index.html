@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Paste</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="author" content="Gr&eacute;gory Paul" />
+  <meta name="viewport"
+    content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0, user-scalable=no" />
+  <meta name="description" content="A pasting tool" />
+  <meta name="theme-color" content="#FFEFD6" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="shortcut icon" href="./pad-128.png" />
+  <link type="text/css" rel="stylesheet" href="./simple-v1.min.css" />
+  <link type="text/css" rel="stylesheet" href="./index.css" />
+  <script src="./index.js" defer></script>
+</head>
+
+<body>
+  <header>
+    <h1>My pastebin</h1>
+  </header>
+  <main>
+    <section>
+      <h2>Paste</h2>
+      <form>
+        <p class="error paste">An error occured :/</p>
+        <label>Time to keep data :
+          <select name="keep">
+            <option value="60000">1 minute</option>
+            <option value="300000" selected>5 minutes</option>
+            <option value="3600000">1 hour</option>
+            <option value="43200000">12 hours</option>
+            <option value="86400000">24 hours</option>
+          </select>
+        </label>
+        <textarea required autocomplete="off" autofocus placeholder="type here what you want to paste..."></textarea>
+        <input type="submit" value="post" />
+      </form>
+    </section>
+    <section>
+      <h2>Pasted content</h2>
+      <div id="parsedData"></div>
+      <template id="templatePastedData">
+        <article>
+          <pre class="data"></pre>
+          <small class="until">valid until {}</small>
+        </article>
+      </template>
+    </section>
+  </main>
+</body>
+
+</html>
