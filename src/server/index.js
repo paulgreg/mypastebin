@@ -15,6 +15,9 @@ app.use(
 const MINUTE_MS = 1000 * 60
 const HOUR_MS = MINUTE_MS * 60
 const ONE_DAY_MS = HOUR_MS * 24
+
+const MAX_DATA_LENGTH = 1_000_000 // cumulative limit for posted data
+
 let data = []
 
 if (process.env.NODE_ENV !== 'production') {
@@ -26,12 +29,28 @@ app.listen(process.env.PORT || defaultPort, () => {
   console.log(`Paste app listening on port ${defaultPort}`)
 })
 
+const checkDataLength = (newContent) => {
+  const dataLength = data.reduce(
+    (acc, current) => acc + current.content.length,
+    0
+  )
+  const newDataLength = dataLength + newContent.length
+  console.log(
+    'new data length',
+    newDataLength,
+    'passed ?',
+    newDataLength < MAX_DATA_LENGTH
+  )
+  return newDataLength < MAX_DATA_LENGTH
+}
+
 app.post('/api/paste', (req, res) => {
   const body = req.body
 
   if (
     typeof body.content === 'string' &&
     body.content.length > 0 &&
+    checkDataLength(body.content) &&
     typeof body.keep === 'number' &&
     body.keep <= ONE_DAY_MS
   ) {
