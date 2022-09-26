@@ -27,7 +27,6 @@ textarea {
   margin-bottom: 0;
 }
 
-
 input[type=submit] {
   margin-top: 0;
   width: 100%;
@@ -39,6 +38,11 @@ input[type=file] {
 
 article {
   margin-bottom: 2em;
+}
+
+blockquote {
+  margin-left: 0.5em;
+  white-space: break-spaces;
 }
 
 .data {

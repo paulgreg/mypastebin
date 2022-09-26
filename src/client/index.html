@@ -30,6 +30,7 @@
           <label>Type :
             <select name="type">
               <option value="type_text" selected>text</option>
+              <option value="type_code">code</option>
               <option value="type_file">file</option>
             </select>
           </label>
@@ -52,9 +53,15 @@
     <section>
       <h2>Pasted content</h2>
       <div id="pastedData"></div>
-      <template id="templatePastedData">
+      <template id="templatePastedCode">
         <article>
           <pre class="data"></pre>
+          <small class="until">valid until {}</small>
+        </article>
+      </template>
+      <template id="templatePastedText">
+        <article>
+          <blockquote class="data"></blockquote>
           <small class="until">valid until {}</small>
         </article>
       </template>

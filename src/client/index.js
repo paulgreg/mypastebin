@@ -6,10 +6,12 @@ const typeSelect = document.querySelector('select[name="type"]')
 const errorPaste = document.querySelector('.error.paste')
 const pastedData = document.querySelector('#pastedData')
 const pastedFiles = document.querySelector('#pastedFiles')
-const templatePastedData = document.querySelector('#templatePastedData')
+const templatePastedText = document.querySelector('#templatePastedText')
+const templatePastedCode = document.querySelector('#templatePastedCode')
 const templatePastedFile = document.querySelector('#templatePastedFile')
 
 const TYPE_TEXT = 'type_text'
+const TYPE_CODE = 'type_code'
 const TYPE_FILE = 'type_file'
 
 typeSelect.addEventListener('change', (e) => {
@@ -35,7 +37,8 @@ const fetchData = () =>
 
       const fragment = new DocumentFragment()
       data.forEach((item) => {
-        const child = document.importNode(templatePastedData.content, true)
+        const template = item.pre ? templatePastedCode : templatePastedText
+        const child = document.importNode(template.content, true)
         child.querySelector('.data').textContent = item.content
         const until = child.querySelector('.until')
         until.textContent = until.textContent.replace(
@@ -80,7 +83,7 @@ const postDataOrFile = (e) => {
         console.error(e)
         displayErrorPaste()
       })
-  } else if (typeSelect.value === TYPE_TEXT) {
+  } else if (typeSelect.value === TYPE_TEXT || typeSelect.value === TYPE_CODE) {
     if (textarea.value.length === 0) {
       displayErrorPaste('No data to post')
       return
@@ -95,6 +98,7 @@ const postDataOrFile = (e) => {
       body: JSON.stringify({
         content: textarea.value,
         keep: parseInt(keepSelect.value, 10),
+        pre: typeSelect.value === TYPE_CODE,
       }),
     })
       .then((response) => {

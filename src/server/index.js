@@ -66,11 +66,13 @@ app.post('/api/data', jsonParser, (req, res) => {
     body.content.length > 0 &&
     checkDataLength(body.content) &&
     typeof body.keep === 'number' &&
-    body.keep <= ONE_DAY_MS
+    body.keep <= ONE_DAY_MS &&
+    typeof body.pre === 'boolean'
   ) {
     const msg = {
       content: body.content,
       until: Date.now() + body.keep,
+      pre: body.pre,
     }
     console.log('pushing new message', msg.length)
     data.push(msg)
