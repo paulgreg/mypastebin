@@ -63,7 +63,7 @@ const postDataOrFile = (e) => {
     formData.append('file', files[0])
     formData.append('keep', parseInt(keepSelect.value, 10))
 
-    fetch('/api/file', {
+    fetch('./api/file', {
       method: 'POST',
       body: formData,
     })
