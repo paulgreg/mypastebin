@@ -32,6 +32,8 @@ const ONE_DAY_MS = HOUR_MS * 24
 let data = []
 let files = []
 
+const generateRandomId = () => Math.random().toString(36).substring(2)
+
 if (process.env.NODE_ENV !== 'production') {
   console.log('Serving static files')
   app.use(express.static(path.join(__dirname, '../client')))
@@ -40,6 +42,51 @@ if (process.env.NODE_ENV !== 'production') {
 app.listen(process.env.PORT || defaultPort, () => {
   console.log(`Paste app listening on port ${defaultPort}`)
 })
+
+// Periodic cleanup
+
+const periodicFilterData = () => {
+  const nbBefore = data.length
+  data = data.filter((item) => item.until >= Date.now())
+  const nbAfter = data.length
+  if (nbAfter !== nbBefore) {
+    console.log(new Date(), 'periodicFilterData: ', nbBefore, ' -> ', nbAfter)
+  }
+  setTimeout(periodicFilterData, MINUTE_MS)
+}
+periodicFilterData()
+
+const removeFile = (file) => {
+  if (fs.existsSync(file.path)) {
+    console.log(new Date(), 'removing file', file)
+    fs.unlinkSync(file.path)
+    files = files.filter((currentFile) => currentFile.path !== file.path)
+    console.log(new Date(), 'file removed', file.path)
+  } else {
+    console.error(new Date(), 'file not here', file)
+    throw new Error('file not found')
+  }
+}
+
+const periodicFilterFiles = () => {
+  const nbBefore = files.length
+  files
+    .filter((file) => file.until < Date.now())
+    .forEach((file) => {
+      try {
+        removeFile(file)
+      } catch (e) {
+        console.error('error while removing file', file, e)
+      }
+    })
+
+  const nbAfter = files.length
+  if (nbAfter !== nbBefore) {
+    console.log(new Date(), 'periodicFilterFiles:', nbBefore, ' -> ', nbAfter)
+  }
+  setTimeout(periodicFilterFiles, MINUTE_MS)
+}
+periodicFilterFiles()
 
 // Text data
 
@@ -70,11 +117,12 @@ app.post('/api/data', jsonParser, (req, res) => {
     typeof body.pre === 'boolean'
   ) {
     const msg = {
+      id: generateRandomId(),
       content: body.content,
       until: Date.now() + body.keep,
       pre: body.pre,
     }
-    console.log('pushing new message', msg.length)
+    console.log('pushing new message', msg.content.length, msg.until)
     data.push(msg)
     res.sendStatus(200)
   } else {
@@ -87,6 +135,18 @@ app.get('/api/data', (req, res) => {
   res.json(data)
 })
 
+app.delete('/api/data/:id', (req, res) => {
+  console.log(new Date(), 'deleting data', req.params.id)
+  const item = data.find(({ id }) => id === req.params.id)
+  if (item) {
+    data = data.filter(({ id }) => id !== req.params.id)
+    res.sendStatus(200)
+  } else {
+    res.sendStatus(400)
+  }
+})
+
+// Files
 const checkFilesLength = (newFileSize) => {
   const fileLength = files.reduce((acc, current) => acc + current.size, 0)
   const newFilesLength = fileLength + newFileSize
@@ -99,11 +159,7 @@ const checkFilesLength = (newFileSize) => {
   return newFilesLength < CUMULATIVE_MAX_FILES_SIZE
 }
 
-// Files
-
-const generateRandomId = () => Math.random().toString(36).substring(2)
-
-app.post('/api/file', upload.single('file'), (req, res) => {
+app.post('/api/files', upload.single('file'), (req, res) => {
   const file = req.file
   const keep = parseInt(req.body?.keep, 10)
   if (
@@ -164,48 +220,18 @@ app.get('/api/files/:id', (req, res) => {
   }
 })
 
-// Periodic cleanup
-
-const periodicFilterData = () => {
-  const nbBefore = data.length
-  data = data.filter((item) => item.until > Date.now())
-  const nbAfter = data.length
-  if (nbAfter !== nbBefore) {
-    console.log(new Date(), 'periodicFilterData: ', nbBefore, ' -> ', nbAfter)
-  }
-  setTimeout(periodicFilterData, MINUTE_MS)
-}
-periodicFilterData()
-
-const removeFile = (file) => {
-  try {
-    if (fs.existsSync(file.path)) {
-      console.log(new Date(), 'removing file', file)
-      fs.unlinkSync(file.path)
-      console.log(new Date(), 'file removed', file)
-    } else {
-      console.error(new Date(), 'file not here', file)
-    }
-  } catch (e) {
-    console.error('error while removing file', file, e)
-  }
-}
-
-const periodicFilterFiles = () => {
-  const nbBefore = files.length
-  const removedFiles = []
-  files
-    .filter((file) => file.until < Date.now())
-    .forEach((file) => {
-      removedFiles.push(file.path)
+app.delete('/api/files/:id', (req, res) => {
+  console.log(new Date(), 'deleting file', req.params.id)
+  const file = files.find(({ id }) => id === req.params.id)
+  if (file) {
+    try {
       removeFile(file)
-    })
-
-  files = files.filter((file) => !removedFiles.includes(file.path))
-  const nbAfter = files.length
-  if (nbAfter !== nbBefore) {
-    console.log(new Date(), 'periodicFilterFiles:', nbBefore, ' -> ', nbAfter)
+      res.sendStatus(200)
+    } catch (e) {
+      console.error('error while removing file', file, e)
+      res.sendStatus(400)
+    }
+  } else {
+    res.sendStatus(400)
   }
-  setTimeout(periodicFilterFiles, MINUTE_MS)
-}
-periodicFilterFiles()
+})

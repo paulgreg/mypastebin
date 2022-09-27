@@ -16,11 +16,11 @@ const TYPE_FILE = 'type_file'
 
 typeSelect.addEventListener('change', (e) => {
   if (e.target.value === TYPE_FILE) {
-    inputFile.style.display = 'block'
+    inputFile.style.display = 'inline-block'
     textarea.style.display = 'none'
   } else {
     inputFile.style.display = 'none'
-    textarea.style.display = 'block'
+    textarea.style.display = 'inline-block'
   }
 })
 
@@ -45,10 +45,31 @@ const fetchData = () =>
           '{}',
           formatDate(item.until)
         )
+        child
+          .querySelector('a.removeData')
+          .addEventListener('click', removeData(item.id), false)
+
         fragment.append(child)
       })
       pastedData.appendChild(fragment)
     })
+
+const removeData = (id) => (e) => {
+  e.stopPropagation()
+  e.preventDefault()
+  if (confirm(`remove data ?`)) {
+    fetch(`./api/data/${id}`, {
+      method: 'DELETE',
+    })
+      .then((response) => {
+        console.log(response)
+        fetchData()
+      })
+      .catch((e) => {
+        console.error(e)
+      })
+  }
+}
 
 const postDataOrFile = (e) => {
   hideErrorPaste()
@@ -66,7 +87,7 @@ const postDataOrFile = (e) => {
     formData.append('file', files[0])
     formData.append('keep', parseInt(keepSelect.value, 10))
 
-    fetch('./api/file', {
+    fetch('./api/files', {
       method: 'POST',
       body: formData,
     })
@@ -117,6 +138,23 @@ const postDataOrFile = (e) => {
   }
 }
 
+const removeFile = (name, id) => (e) => {
+  e.stopPropagation()
+  e.preventDefault()
+  if (confirm(`remove ${name} ?`)) {
+    fetch(`./api/files/${id}`, {
+      method: 'DELETE',
+    })
+      .then((response) => {
+        console.log(response)
+        fetchFiles()
+      })
+      .catch((e) => {
+        console.error(e)
+      })
+  }
+}
+
 const fetchFiles = () =>
   fetch('./api/files')
     .then((response) => response.json())
@@ -140,6 +178,14 @@ const fetchFiles = () =>
           '{}',
           formatDate(file.until)
         )
+        child
+          .querySelector('a.removeFile')
+          .addEventListener(
+            'click',
+            removeFile(file.originalname, file.id),
+            false
+          )
+
         fragment.append(child)
       })
       pastedFiles.appendChild(fragment)

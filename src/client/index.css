@@ -25,6 +25,7 @@ textarea {
   width: 100%;
   height: 100px;
   margin-bottom: 0;
+  display: inline-block;
 }
 
 input[type=submit] {
@@ -56,4 +57,12 @@ blockquote {
 
 .error.paste {
   display: none;
+}
+
+a.removeData,
+a.removeFile {
+  cursor: pointer;
+  font-size: small;
+  text-decoration: underline;
+
 }
