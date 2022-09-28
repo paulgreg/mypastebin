@@ -28,15 +28,17 @@ typeSelect.addEventListener('change', (e) => {
   }
 })
 
-const decryptData = (id, salt, iv, encryptedMsg) => (e) => {
+const decryptData = (id, salt, iv) => (e) => {
   e.preventDefault()
   e.stopPropagation()
   const userPassword = prompt('password ?')
-  decrypt(userPassword, salt, iv, encryptedMsg)
+
+  const article = document.getElementById(id)
+  const data = article.querySelector('.data')
+  decrypt(userPassword, salt, iv, data.textContent)
     .then((msg) => {
-      const article = document.getElementById(id)
       article.classList.remove('encrypted')
-      article.querySelector('.data').textContent = msg
+      data.textContent = msg
     })
     .catch((e) => {
       alert('decryption failed, bad password ?')
@@ -66,7 +68,7 @@ const fetchData = () =>
           const decryptLink = child.querySelector('.decrypt')
           decryptLink.addEventListener(
             'click',
-            decryptData(item.id, item.salt, item.iv, item.content),
+            decryptData(item.id, item.salt, item.iv),
             false
           )
         }
