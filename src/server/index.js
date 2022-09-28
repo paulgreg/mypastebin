@@ -3,16 +3,16 @@ const path = require('path')
 const express = require('express')
 const multer = require('multer')
 
-const ONE_MO = 1048576
+const ONE_MB = 1_048_576
 
-const CUMULATIVE_MAX_DATA_LENGTH = 1_000_000 // cumulative limit for posted data
-const CUMULATIVE_MAX_FILES_SIZE = 100 * ONE_MO // culumative limit for posted files
+const CUMULATIVE_MAX_DATA_LENGTH = ONE_MB // cumulative limit for posted data
+const CUMULATIVE_MAX_FILES_SIZE = 100 * ONE_MB // culumative limit for posted files
 
 const upload = multer({
   dest: '/tmp/',
   limits: {
     fieldNameSize: 100,
-    fieldSize: 10 * ONE_MO,
+    fieldSize: 10 * ONE_MB,
   },
 })
 
