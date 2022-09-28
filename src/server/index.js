@@ -114,13 +114,17 @@ app.post('/api/data', jsonParser, (req, res) => {
     checkDataLength(body.content) &&
     typeof body.keep === 'number' &&
     body.keep <= ONE_DAY_MS &&
-    typeof body.pre === 'boolean'
+    typeof body.pre === 'boolean' &&
+    ((!body.salt && !body.iv) ||
+      (typeof body.salt === 'string' && typeof body.iv === 'string'))
   ) {
     const msg = {
       id: generateRandomId(),
       content: body.content,
       until: Date.now() + body.keep,
       pre: body.pre,
+      iv: body.iv,
+      salt: body.salt,
     }
     console.log('pushing new message', msg.content.length, msg.until)
     data.push(msg)

@@ -1,6 +1,8 @@
 const form = document.querySelector('form')
 const textarea = document.querySelector('textarea')
 const inputFile = document.querySelector('input[type=file]')
+const passwordContainer = document.querySelector('.passwordContainer')
+const passwordInput = document.querySelector('#password')
 const keepSelect = document.querySelector('select[name="keep"]')
 const typeSelect = document.querySelector('select[name="type"]')
 const errorPaste = document.querySelector('.error.paste')
@@ -18,11 +20,29 @@ typeSelect.addEventListener('change', (e) => {
   if (e.target.value === TYPE_FILE) {
     inputFile.style.display = 'inline-block'
     textarea.style.display = 'none'
+    passwordContainer.style.display = 'none'
   } else {
     inputFile.style.display = 'none'
     textarea.style.display = 'inline-block'
+    passwordContainer.style.display = 'flex'
   }
 })
+
+const decryptData = (id, salt, iv, encryptedMsg) => (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  const userPassword = prompt('password ?')
+  decrypt(userPassword, salt, iv, encryptedMsg)
+    .then((msg) => {
+      const article = document.getElementById(id)
+      article.classList.remove('encrypted')
+      article.querySelector('.data').textContent = msg
+    })
+    .catch((e) => {
+      alert('decryption failed, bad password ?')
+      console.error(e)
+    })
+}
 
 const fetchData = () =>
   fetch('./api/data')
@@ -39,6 +59,17 @@ const fetchData = () =>
       data.forEach((item) => {
         const template = item.pre ? templatePastedCode : templatePastedText
         const child = document.importNode(template.content, true)
+        const article = child.querySelector('article')
+        article.setAttribute('id', item.id)
+        if (item.iv && item.salt) {
+          article.classList.add('encrypted')
+          const decryptLink = child.querySelector('.decrypt')
+          decryptLink.addEventListener(
+            'click',
+            decryptData(item.id, item.salt, item.iv, item.content),
+            false
+          )
+        }
         child.querySelector('.data').textContent = item.content
         const until = child.querySelector('.until')
         until.textContent = until.textContent.replace(
@@ -110,21 +141,35 @@ const postDataOrFile = (e) => {
       return
     }
 
-    fetch('./api/data', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: textarea.value,
-        keep: parseInt(keepSelect.value, 10),
-        pre: typeSelect.value === TYPE_CODE,
-      }),
-    })
+    Promise.resolve()
+      .then(() => {
+        const content = textarea.value
+        if (passwordInput.value.length === 0) {
+          return { content }
+        } else {
+          return encrypt(passwordInput.value, content)
+        }
+      })
+      .then(({ content, iv, salt }) =>
+        fetch('./api/data', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content,
+            keep: parseInt(keepSelect.value, 10),
+            pre: typeSelect.value === TYPE_CODE,
+            iv,
+            salt,
+          }),
+        })
+      )
       .then((response) => {
         if (response.status === 200) {
           textarea.value = ''
+          passwordInput.value = ''
           fetchData()
         } else {
           console.log(response)

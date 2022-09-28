@@ -15,6 +15,7 @@
   <link type="text/css" rel="stylesheet" href="./simple-v1.min.css" />
   <link type="text/css" rel="stylesheet" href="./index.css" />
   <script src="./utils.js" defer></script>
+  <script src="./crypto.js" defer></script>
   <script src="./index.js" defer></script>
 </head>
 
@@ -34,7 +35,7 @@
               <option value="type_file">file</option>
             </select>
           </label>
-          <label>Time to keep :
+          <label>Keep :
             <select name="keep">
               <option value="60000">1 minute</option>
               <option value="300000" selected>5 minutes</option>
@@ -46,6 +47,10 @@
         </div>
         <textarea autocomplete="off" autofocus placeholder="type here what you want to paste..."></textarea>
         <input type="file" />
+        <div class="passwordContainer">
+          <label for="password">Optional password to encrypt message :</label>
+          <input type="text" id="password" name="password" />
+        </div>
         <input type="submit" value="post" />
       </form>
       <p class="error paste"></p>
@@ -56,6 +61,7 @@
       <template id="templatePastedCode">
         <article>
           <pre class="data"></pre>
+          <a href="#" class="decrypt">decrypt</a>
           <small class="until">valid until {}</small>
           <a class="removeData" href="#">delete</a>
         </article>
@@ -63,6 +69,7 @@
       <template id="templatePastedText">
         <article>
           <blockquote class="data"></blockquote>
+          <a href="#" class="decrypt">decrypt</a>
           <small class="until">valid until {}</small>
           <a class="removeData" href="#">delete</a>
         </article>

@@ -28,6 +28,28 @@ textarea {
   display: inline-block;
 }
 
+.passwordContainer {
+  display: flex;
+    flex-direction: column;
+}
+
+@media (min-width:700px) {
+  .passwordContainer {
+    align-items: center;
+    flex-direction: row;
+  }
+}
+
+.passwordContainer label {
+  flex-shrink: 0;
+  margin-right: .5em;
+}
+
+.passwordContainer input {
+  width: auto;
+  flex-grow: 1;
+}
+
 input[type=submit] {
   margin-top: 0;
   width: 100%;
@@ -45,6 +67,22 @@ blockquote {
   margin-left: 0.5em;
   white-space: break-spaces;
 }
+
+.decrypt {
+  display: none;
+}
+
+.encrypted pre,
+.encrypted blockquote {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.encrypted .decrypt,
+.encrypted .decrypt {
+  display: block;
+} 
 
 .data {
   margin-bottom: 0;
