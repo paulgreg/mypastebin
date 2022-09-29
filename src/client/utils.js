@@ -5,7 +5,7 @@ const displayErrorPaste = (msg = 'An error occured :/') => {
   errorPaste.style.display = 'block'
 }
 
-const padZero = (d = 0) => (d < 10 ? `0${d}` : d)
+const padZero = (d = 0) => `${d < 10 ? '0' : ''}${d}`
 
 const formatDate = (ms) => {
   const d = new Date(ms)
@@ -22,4 +22,14 @@ const formatSize = (size) => {
   if (size < KB) return `${size} bytes`
   else if (size < MB) return `${(size / KB).toFixed(2)} Kb`
   else return `${(size / MB).toFixed(2)} Mb`
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    KB,
+    MB,
+    padZero,
+    formatSize,
+    formatDate,
+  }
 }

@@ -6,7 +6,7 @@ const arrayBufferToString = (buf) =>
 
 const arrayBufferToBase64 = (buf) => window.btoa(arrayBufferToString(buf))
 
-const strToArrayBuffer = (str) => {
+const stringToArrayBuffer = (str) => {
   const buf = new ArrayBuffer(str.length)
   const bufView = new Uint8Array(buf)
   for (var i = 0, strLen = str.length; i < strLen; i++) {
@@ -15,7 +15,7 @@ const strToArrayBuffer = (str) => {
   return buf
 }
 
-const base64toArrayBuffer = (str) => strToArrayBuffer(window.atob(str))
+const base64toArrayBuffer = (str) => stringToArrayBuffer(window.atob(str))
 
 const getSalt = () => crypto.getRandomValues(new Uint8Array(8))
 
@@ -75,4 +75,17 @@ const decrypt = (password, saltInBase64, ivInBase64, encryptedDataInBase64) => {
       )
       .then((result) => decoder.decode(new Uint8Array(result)))
   )
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    arrayBufferToString,
+    arrayBufferToBase64,
+    stringToArrayBuffer,
+    base64toArrayBuffer,
+    getIV,
+    getSalt,
+    encrypt,
+    decrypt,
+  }
 }
