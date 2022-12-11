@@ -62,7 +62,7 @@ describe('crypto', () => {
         .then((msg) => decrypt('otherPassword', msg.salt, msg.iv, msg.content))
         .catch((e) => {
           expect(e.message).toBe(
-            'error:06065064:digital envelope routines:EVP_DecryptFinal_ex:bad decrypt'
+            'The operation failed for an operation-specific reason'
           )
         })
     })
