@@ -19,5 +19,5 @@ Beware, files are not encrypted ! (but you can easily zip your file with a passw
 
 Texts are stored in memory while files are stored in temporary directory.
 
-A global limit is set for texts (1 Mb) and files (100 Mb), to avoid filling memory or hard drive space.
-Also, there’s a limit for each piece ot text (100 Kb) and file (10 Mb).
+A global limit is set for texts (1 Mb) and files (1 Gb), to avoid filling memory or hard drive space.
+Also, there’s a limit for each piece ot text (100 Kb) and file (100 Mb).

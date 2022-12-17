@@ -6,13 +6,13 @@ const multer = require('multer')
 const ONE_MB = 1_048_576
 
 const CUMULATIVE_MAX_DATA_LENGTH = ONE_MB // cumulative limit for posted data
-const CUMULATIVE_MAX_FILES_SIZE = 100 * ONE_MB // culumative limit for posted files
+const CUMULATIVE_MAX_FILES_SIZE = 1000 * ONE_MB // culumative limit for posted files
 
 const upload = multer({
   dest: '/tmp/',
   limits: {
     fieldNameSize: 100,
-    fieldSize: 10 * ONE_MB,
+    fieldSize: 100 * ONE_MB,
   },
 })
 
