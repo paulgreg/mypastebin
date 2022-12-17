@@ -1,10 +1,4 @@
-const {
-  padZero,
-  formatSize,
-  KB,
-  MB,
-  formatDate,
-} = require('../../src/client/utils')
+import { padZero, formatSize, KB, MB, formatDate } from '../../src/client/utils'
 
 describe('utils', () => {
   describe('padZero', () => {

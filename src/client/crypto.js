@@ -1,12 +1,13 @@
 const encoder = new TextEncoder('utf-8')
 const decoder = new TextDecoder('utf-8')
 
-const arrayBufferToString = (buf) =>
+export const arrayBufferToString = (buf) =>
   String.fromCharCode.apply(null, new Uint8Array(buf))
 
-const arrayBufferToBase64 = (buf) => window.btoa(arrayBufferToString(buf))
+export const arrayBufferToBase64 = (buf) =>
+  window.btoa(arrayBufferToString(buf))
 
-const stringToArrayBuffer = (str) => {
+export const stringToArrayBuffer = (str) => {
   const buf = new ArrayBuffer(str.length)
   const bufView = new Uint8Array(buf)
   for (var i = 0, strLen = str.length; i < strLen; i++) {
@@ -15,9 +16,10 @@ const stringToArrayBuffer = (str) => {
   return buf
 }
 
-const base64toArrayBuffer = (str) => stringToArrayBuffer(window.atob(str))
+export const base64toArrayBuffer = (str) =>
+  stringToArrayBuffer(window.atob(str))
 
-const getSalt = () => crypto.getRandomValues(new Uint8Array(8))
+export const getSalt = () => crypto.getRandomValues(new Uint8Array(8))
 
 const getKeyFromPassword = (password, salt) =>
   window.crypto.subtle
@@ -35,9 +37,9 @@ const getKeyFromPassword = (password, salt) =>
       )
     )
 
-const getIV = () => crypto.getRandomValues(new Uint8Array(16))
+export const getIV = () => crypto.getRandomValues(new Uint8Array(16))
 
-const encrypt = (password, msg) => {
+export const encrypt = (password, msg) => {
   const salt = getSalt()
   const iv = getIV()
 
@@ -62,7 +64,12 @@ const encrypt = (password, msg) => {
     })
 }
 
-const decrypt = (password, saltInBase64, ivInBase64, encryptedDataInBase64) => {
+export const decrypt = (
+  password,
+  saltInBase64,
+  ivInBase64,
+  encryptedDataInBase64
+) => {
   const salt = base64toArrayBuffer(saltInBase64)
   const iv = base64toArrayBuffer(ivInBase64)
 
@@ -75,17 +82,4 @@ const decrypt = (password, saltInBase64, ivInBase64, encryptedDataInBase64) => {
       )
       .then((result) => decoder.decode(new Uint8Array(result)))
   )
-}
-
-if (typeof module !== 'undefined') {
-  module.exports = {
-    arrayBufferToString,
-    arrayBufferToBase64,
-    stringToArrayBuffer,
-    base64toArrayBuffer,
-    getIV,
-    getSalt,
-    encrypt,
-    decrypt,
-  }
 }

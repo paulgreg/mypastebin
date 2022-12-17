@@ -1,13 +1,13 @@
-const hideErrorPaste = () => (errorPaste.style.display = '')
+export const hideErrorPaste = (errorPaste) => (errorPaste.style.display = '')
 
-const displayErrorPaste = (msg = 'An error occured :/') => {
+export const displayErrorPaste = (errorPaste, msg = 'An error occured :/') => {
   errorPaste.textContent = msg
   errorPaste.style.display = 'block'
 }
 
-const padZero = (d = 0) => `${d < 10 ? '0' : ''}${d}`
+export const padZero = (d = 0) => `${d < 10 ? '0' : ''}${d}`
 
-const formatDate = (ms) => {
+export const formatDate = (ms) => {
   const d = new Date(ms)
   const isToday = d.getDate() === new Date().getDate()
   return `${padZero(d.getHours())}:${padZero(d.getMinutes())}, ${
@@ -15,21 +15,11 @@ const formatDate = (ms) => {
   }`
 }
 
-const KB = 1024
-const MB = KB * KB
+export const KB = 1024
+export const MB = KB * KB
 
-const formatSize = (size) => {
+export const formatSize = (size) => {
   if (size < KB) return `${size} bytes`
   else if (size < MB) return `${(size / KB).toFixed(2)} Kb`
   else return `${(size / MB).toFixed(2)} Mb`
-}
-
-if (typeof module !== 'undefined') {
-  module.exports = {
-    KB,
-    MB,
-    padZero,
-    formatSize,
-    formatDate,
-  }
 }

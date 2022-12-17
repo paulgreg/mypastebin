@@ -1,4 +1,4 @@
-const {
+import {
   stringToArrayBuffer,
   arrayBufferToString,
   base64toArrayBuffer,
@@ -7,7 +7,7 @@ const {
   getSalt,
   encrypt,
   decrypt,
-} = require('../../src/client/crypto')
+} from '../../src/client/crypto'
 
 describe('crypto', () => {
   describe('arraybuffer to/from string or base64 conversions', () => {
@@ -61,9 +61,7 @@ describe('crypto', () => {
       return encrypt(password, originalMessage)
         .then((msg) => decrypt('otherPassword', msg.salt, msg.iv, msg.content))
         .catch((e) => {
-          expect(e.message).toBe(
-            'The operation failed for an operation-specific reason'
-          )
+          expect(e).toBeDefined()
         })
     })
   })

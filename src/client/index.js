@@ -1,3 +1,11 @@
+import { decrypt, encrypt } from './crypto.js'
+import {
+  hideErrorPaste,
+  displayErrorPaste,
+  formatSize,
+  formatDate,
+} from './utils.js'
+
 const form = document.querySelector('form')
 const textarea = document.querySelector('textarea')
 const inputFile = document.querySelector('input[type=file]')
@@ -105,13 +113,13 @@ const removeData = (id) => (e) => {
 }
 
 const postDataOrFile = (e) => {
-  hideErrorPaste()
+  hideErrorPaste(errorPaste)
   e.stopPropagation()
   e.preventDefault()
 
   if (typeSelect.value === TYPE_FILE) {
     if (inputFile.value.length === 0) {
-      displayErrorPaste('No file to post')
+      displayErrorPaste(errorPaste, 'No file to post')
       return
     }
 
@@ -130,16 +138,16 @@ const postDataOrFile = (e) => {
           fetchFiles()
         } else {
           console.log(response)
-          displayErrorPaste()
+          displayErrorPaste(errorPaste)
         }
       })
       .catch((e) => {
         console.error(e)
-        displayErrorPaste()
+        displayErrorPaste(errorPaste)
       })
   } else if (typeSelect.value === TYPE_TEXT || typeSelect.value === TYPE_CODE) {
     if (textarea.value.length === 0) {
-      displayErrorPaste('No data to post')
+      displayErrorPaste(errorPaste, 'No data to post')
       return
     }
 
@@ -175,12 +183,12 @@ const postDataOrFile = (e) => {
           fetchData()
         } else {
           console.log(response)
-          displayErrorPaste()
+          displayErrorPaste(errorPaste)
         }
       })
       .catch((e) => {
         console.error(e)
-        displayErrorPaste()
+        displayErrorPaste(errorPaste)
       })
   }
 }
