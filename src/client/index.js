@@ -11,6 +11,7 @@ const textarea = document.querySelector('textarea')
 const inputFile = document.querySelector('input[type=file]')
 const passwordContainer = document.querySelector('.passwordContainer')
 const passwordInput = document.querySelector('#password')
+const submitButton = document.querySelector('input[type=submit]')
 const keepSelect = document.querySelector('select[name="keep"]')
 const typeSelect = document.querySelector('select[name="type"]')
 const errorPaste = document.querySelector('.error.paste')
@@ -157,11 +158,13 @@ const postDataOrFile = (e) => {
         if (passwordInput.value.length === 0) {
           return { content }
         } else {
+          submitButton.disabled = true
           return encrypt(passwordInput.value, content)
         }
       })
-      .then(({ content, iv, salt }) =>
-        fetch('./api/data', {
+      .then(({ content, iv, salt }) => {
+        submitButton.disabled = false
+        return fetch('./api/data', {
           method: 'POST',
           headers: {
             Accept: 'application/json',
@@ -175,7 +178,7 @@ const postDataOrFile = (e) => {
             salt,
           }),
         })
-      )
+      })
       .then((response) => {
         if (response.status === 200) {
           textarea.value = ''

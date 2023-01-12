@@ -1,6 +1,10 @@
 const encoder = new TextEncoder('utf-8')
 const decoder = new TextDecoder('utf-8')
 
+const PBKDF2_ITERATIONS = 1_000_000
+
+const AES_KEY_BIT_LENGTH = 256
+
 export const arrayBufferToString = (buf) =>
   String.fromCharCode.apply(null, new Uint8Array(buf))
 
@@ -29,9 +33,14 @@ const getKeyFromPassword = (password, salt) =>
     ])
     .then((rawKey) =>
       window.crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt, iterations: 1000, hash: 'SHA-256' },
+        {
+          name: 'PBKDF2',
+          salt,
+          iterations: PBKDF2_ITERATIONS,
+          hash: 'SHA-256',
+        },
         rawKey,
-        { name: 'AES-CBC', length: 256 },
+        { name: 'AES-CBC', length: AES_KEY_BIT_LENGTH },
         false, // not extractible
         ['encrypt', 'decrypt']
       )
