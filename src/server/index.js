@@ -28,6 +28,7 @@ const jsonParser = express.json({
 const MINUTE_MS = 1000 * 60
 const HOUR_MS = MINUTE_MS * 60
 const ONE_DAY_MS = HOUR_MS * 24
+const ONE_WEEK_MS = ONE_DAY_MS * 7
 
 let data = []
 let files = []
@@ -113,7 +114,7 @@ app.post('/api/data', jsonParser, (req, res) => {
     body.content.length > 0 &&
     checkDataLength(body.content) &&
     typeof body.keep === 'number' &&
-    body.keep <= ONE_DAY_MS &&
+    body.keep <= ONE_WEEK_MS &&
     typeof body.pre === 'boolean' &&
     ((!body.salt && !body.iv) ||
       (typeof body.salt === 'string' && typeof body.iv === 'string'))
