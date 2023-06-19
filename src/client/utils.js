@@ -9,10 +9,19 @@ export const padZero = (d = 0) => `${d < 10 ? '0' : ''}${d}`
 
 export const formatDate = (ms) => {
   const d = new Date(ms)
-  const isToday = d.getDate() === new Date().getDate()
-  return `${padZero(d.getHours())}:${padZero(d.getMinutes())}, ${
-    isToday ? 'today' : 'tomorrow'
-  }`
+  const dateStr = `${padZero(d.getHours())}:${padZero(d.getMinutes())}`
+
+  const today = new Date()
+  const isToday = d.getDate() === today.getDate()
+  if (isToday) return `${dateStr}, today`
+
+  const tomorrow = new Date()
+  tomorrow.setDate(today.getDate() + 1)
+  const isTomorrow = d.getDate() == tomorrow.getDate()
+  if (isTomorrow) return `${dateStr}, tomorrow`
+
+  const diffInDays = Math.floor((ms - today) / 86400_000)
+  return `${dateStr}, in ${diffInDays} days`
 }
 
 export const KB = 1024

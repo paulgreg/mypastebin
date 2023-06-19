@@ -59,11 +59,18 @@ describe('utils', () => {
       )}, today`
       expect(formatDate(d)).toEqual(expected)
     })
-    test('should return today', () => {
-      const d = new Date(Date.now() + 86400 * 1000)
+    test('should return tomorrow', () => {
+      const d = new Date(Date.now() + 86400_000 + 12345)
       const expected = `${padZero(d.getHours())}:${padZero(
         d.getMinutes()
       )}, tomorrow`
+      expect(formatDate(d)).toEqual(expected)
+    })
+    test('should return in 2 days', () => {
+      const d = new Date(Date.now() + 2 * 86400_000 + 12345)
+      const expected = `${padZero(d.getHours())}:${padZero(
+        d.getMinutes()
+      )}, in 2 days`
       expect(formatDate(d)).toEqual(expected)
     })
   })
