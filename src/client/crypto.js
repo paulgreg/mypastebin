@@ -40,7 +40,7 @@ const getKeyFromPassword = (password, salt) =>
           hash: 'SHA-256',
         },
         rawKey,
-        { name: 'AES-CBC', length: AES_KEY_BIT_LENGTH },
+        { name: 'AES-GCM', length: AES_KEY_BIT_LENGTH },
         false, // not extractible
         ['encrypt', 'decrypt']
       )
@@ -57,8 +57,8 @@ export const encrypt = (password, msg) => {
       const inputToEncrypt = encoder.encode(msg)
       return crypto.subtle.encrypt(
         {
-          name: 'AES-CBC',
-          iv, // AES-CBC requires a 128-bit initialization vector (iv).
+          name: 'AES-GCM',
+          iv, // AES-GCM requires a 128-bit initialization vector (iv).
         },
         key,
         inputToEncrypt
@@ -85,7 +85,7 @@ export const decrypt = (
   return getKeyFromPassword(password, salt).then((key) =>
     crypto.subtle
       .decrypt(
-        { name: 'AES-CBC', iv },
+        { name: 'AES-GCM', iv },
         key,
         base64toArrayBuffer(encryptedDataInBase64)
       )
