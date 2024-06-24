@@ -175,7 +175,7 @@ app.post('/api/files', upload.single('file'), (req, res) => {
     file.size &&
     checkFilesLength(file.size) &&
     keep > 0 &&
-    keep <= ONE_DAY_MS
+    keep <= ONE_WEEK_MS
   ) {
     const { originalname, mimetype, path, size } = file
 
