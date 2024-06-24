@@ -17,13 +17,14 @@ export const stringToArrayBuffer = (str) => {
   for (var i = 0, strLen = str.length; i < strLen; i++) {
     bufView[i] = str.charCodeAt(i)
   }
-  return buf
+  return new Uint8Array(buf)
 }
 
 export const base64toArrayBuffer = (str) =>
   stringToArrayBuffer(window.atob(str))
 
-export const getSalt = () => crypto.getRandomValues(new Uint8Array(8))
+export const getRandomValues = (size = 16) =>
+  crypto.getRandomValues(new Uint8Array(size))
 
 const getKeyFromPassword = (password, salt) =>
   window.crypto.subtle
@@ -46,11 +47,9 @@ const getKeyFromPassword = (password, salt) =>
       )
     )
 
-export const getIV = () => crypto.getRandomValues(new Uint8Array(16))
-
 export const encrypt = (password, msg) => {
-  const salt = getSalt()
-  const iv = getIV()
+  const salt = getRandomValues()
+  const iv = getRandomValues() // always generate a new initialization vector
 
   return getKeyFromPassword(password, salt)
     .then((key) => {
@@ -58,7 +57,7 @@ export const encrypt = (password, msg) => {
       return crypto.subtle.encrypt(
         {
           name: 'AES-GCM',
-          iv, // AES-GCM requires a 128-bit initialization vector (iv).
+          iv,
         },
         key,
         inputToEncrypt

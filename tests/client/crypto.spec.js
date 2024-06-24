@@ -3,10 +3,9 @@ import {
   arrayBufferToString,
   base64toArrayBuffer,
   arrayBufferToBase64,
-  getIV,
-  getSalt,
   encrypt,
   decrypt,
+  getRandomValues,
 } from '../../src/client/crypto'
 
 describe('crypto', () => {
@@ -29,12 +28,9 @@ describe('crypto', () => {
     })
   })
 
-  describe('getSalt', () => {
-    test('should return an array of 8', () => expect(getSalt()).toHaveLength(8))
-  })
-
-  describe('getIV', () => {
-    test('should return an array of 16', () => expect(getIV()).toHaveLength(16))
+  describe('getRandomValues', () => {
+    test('should return an array of 16', () =>
+      expect(getRandomValues()).toHaveLength(16))
   })
 
   describe('encryption/decryption', () => {
@@ -45,8 +41,8 @@ describe('crypto', () => {
       encrypt(password, originalMessage)
         .then((msg) => {
           const { content, salt, iv } = msg
-          expect(content).toHaveLength(24)
-          expect(salt).toHaveLength(12)
+          expect(content).toHaveLength(40)
+          expect(salt).toHaveLength(24)
           expect(iv).toHaveLength(24)
           expect(content).not.toEqual(originalMessage)
           return msg
