@@ -184,6 +184,7 @@ const postDataOrFile = (e) => {
           textarea.value = ''
           passwordInput.value = ''
           fetchData()
+          alert('data posted')
         } else {
           console.log(response)
           displayErrorPaste(errorPaste)
