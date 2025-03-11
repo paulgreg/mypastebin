@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "tsx src/server",
     "start": "node src/server",
-    "test": "jest",
-    "tdd": "jest --watch"
+    "test": "vitest"
   },
   "author": "Grégory PAUL",
   "license": "GPL-3.0-or-later",
@@ -17,10 +16,9 @@
     "tsx": "^4.19.3"
   },
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "@types/express": "^5.0.0",
     "@types/multer": "^1.4.12",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "vitest": "^3.0.8"
   }
 }
