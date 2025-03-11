@@ -2,9 +2,9 @@
   "name": "mypastebin",
   "version": "1.0.0",
   "description": "Simple pastebin",
-  "main": "src/server/index.js",
+  "main": "src/server/index.ts",
   "scripts": {
-    "dev": "nodemon src/server",
+    "dev": "tsx src/server",
     "start": "node src/server",
     "test": "jest",
     "tdd": "jest --watch"
@@ -12,13 +12,15 @@
   "author": "Grégory PAUL",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "express": "^4.21.0",
-    "multer": "^1.4.5-lts.1"
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "tsx": "^4.19.3"
   },
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.24.8",
+    "@babel/plugin-transform-modules-commonjs": "^7.26.3",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "nodemon": "^3.1.4"
+    "jest-environment-jsdom": "^29.7.0"
   }
 }

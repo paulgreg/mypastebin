@@ -1,7 +1,14 @@
-const fs = require('fs')
-const path = require('path')
-const express = require('express')
-const multer = require('multer')
+import fs from 'fs'
+import path from 'path'
+import express from 'express'
+import multer from 'multer'
+import { generateRandomId } from './utils'
+import {
+  PastedData,
+  PastedDatas,
+  PastedFile,
+  PastedFiles,
+} from './PasteBinTypes'
 
 const ONE_MB = 1_048_576
 
@@ -30,17 +37,15 @@ const HOUR_MS = MINUTE_MS * 60
 const ONE_DAY_MS = HOUR_MS * 24
 const ONE_WEEK_MS = ONE_DAY_MS * 7
 
-let data = []
-let files = []
-
-const generateRandomId = () => Math.random().toString(36).substring(2)
+let data: PastedDatas = []
+let files: PastedFiles = []
 
 if (process.env.NODE_ENV !== 'production') {
   console.log('Serving static files')
   app.use(express.static(path.join(__dirname, '../client')))
 }
 
-app.listen(process.env.PORT || defaultPort, () => {
+app.listen(process.env.PORT ?? defaultPort, () => {
   console.log(`Paste app listening on port ${defaultPort}`)
 })
 
@@ -57,7 +62,7 @@ const periodicFilterData = () => {
 }
 periodicFilterData()
 
-const removeFile = (file) => {
+const removeFile = (file: PastedFile | Express.Multer.File) => {
   if (fs.existsSync(file.path)) {
     console.log(new Date(), 'removing file', file)
     fs.unlinkSync(file.path)
@@ -91,12 +96,12 @@ periodicFilterFiles()
 
 // Text data
 
-const checkDataLength = (newContent) => {
+const checkDataLength = (newContentLength: number) => {
   const dataLength = data.reduce(
     (acc, current) => acc + current.content.length,
     0
   )
-  const newDataLength = dataLength + newContent.length
+  const newDataLength = dataLength + newContentLength
   console.log(
     'new data length',
     newDataLength,
@@ -112,14 +117,14 @@ app.post('/api/data', jsonParser, (req, res) => {
   if (
     typeof body.content === 'string' &&
     body.content.length > 0 &&
-    checkDataLength(body.content) &&
+    checkDataLength(body.content?.length) &&
     typeof body.keep === 'number' &&
     body.keep <= ONE_WEEK_MS &&
     typeof body.pre === 'boolean' &&
     ((!body.salt && !body.iv) ||
       (typeof body.salt === 'string' && typeof body.iv === 'string'))
   ) {
-    const msg = {
+    const msg: PastedData = {
       id: generateRandomId(),
       content: body.content,
       until: Date.now() + body.keep,
@@ -136,7 +141,7 @@ app.post('/api/data', jsonParser, (req, res) => {
   }
 })
 
-app.get('/api/data', (req, res) => {
+app.get('/api/data', (_req, res) => {
   res.json(data)
 })
 
@@ -152,7 +157,7 @@ app.delete('/api/data/:id', (req, res) => {
 })
 
 // Files
-const checkFilesLength = (newFileSize) => {
+const checkFilesLength = (newFileSize: number) => {
   const fileLength = files.reduce((acc, current) => acc + current.size, 0)
   const newFilesLength = fileLength + newFileSize
   console.log(
@@ -168,8 +173,7 @@ app.post('/api/files', upload.single('file'), (req, res) => {
   const file = req.file
   const keep = parseInt(req.body?.keep, 10)
   if (
-    file &&
-    file.originalname &&
+    file?.originalname &&
     file.mimetype &&
     file.path &&
     file.size &&
@@ -179,7 +183,7 @@ app.post('/api/files', upload.single('file'), (req, res) => {
   ) {
     const { originalname, mimetype, path, size } = file
 
-    const newFile = {
+    const newFile: PastedFile = {
       id: generateRandomId(),
       originalname,
       mimetype,
@@ -192,12 +196,12 @@ app.post('/api/files', upload.single('file'), (req, res) => {
     res.sendStatus(200)
   } else {
     console.log('rejected file:', JSON.stringify(file))
-    removeFile(file)
+    if (file) removeFile(file)
     res.sendStatus(400)
   }
 })
 
-app.get('/api/files', (req, res) => {
+app.get('/api/files', (_req, res) => {
   const availableFiles = files.map(
     ({ id, originalname, mimetype, size, until }) => ({
       id,

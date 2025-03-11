@@ -14,7 +14,7 @@ export const arrayBufferToBase64 = (buf) =>
 export const stringToArrayBuffer = (str) => {
   const buf = new ArrayBuffer(str.length)
   const bufView = new Uint8Array(buf)
-  for (var i = 0, strLen = str.length; i < strLen; i++) {
+  for (let i = 0, strLen = str.length; i < strLen; i++) {
     bufView[i] = str.charCodeAt(i)
   }
   return new Uint8Array(buf)
