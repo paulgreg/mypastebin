@@ -2,13 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import express from 'express'
 import multer from 'multer'
-import { generateRandomId } from './utils'
-import {
-  PastedData,
-  PastedDatas,
-  PastedFile,
-  PastedFiles,
-} from './PasteBinTypes'
+import { DataType, DatasType, FileType, FilesType } from '../PasteBinTypes'
+import { v4 as uuidv4 } from 'uuid'
 
 const ONE_MB = 1_048_576
 
@@ -37,12 +32,22 @@ const HOUR_MS = MINUTE_MS * 60
 const ONE_DAY_MS = HOUR_MS * 24
 const ONE_WEEK_MS = ONE_DAY_MS * 7
 
-let data: PastedDatas = []
-let files: PastedFiles = []
+let data: DatasType = []
+let files: FilesType = []
 
+// handling CORS for DEV
 if (process.env.NODE_ENV !== 'production') {
-  console.log('Serving static files')
-  app.use(express.static(path.join(__dirname, '../client')))
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204)
+    } else {
+      next()
+    }
+  })
 }
 
 app.listen(process.env.PORT ?? defaultPort, () => {
@@ -62,7 +67,7 @@ const periodicFilterData = () => {
 }
 periodicFilterData()
 
-const removeFile = (file: PastedFile | Express.Multer.File) => {
+const removeFile = (file: FileType | Express.Multer.File) => {
   if (fs.existsSync(file.path)) {
     console.log(new Date(), 'removing file', file)
     fs.unlinkSync(file.path)
@@ -124,8 +129,8 @@ app.post('/api/data', jsonParser, (req, res) => {
     ((!body.salt && !body.iv) ||
       (typeof body.salt === 'string' && typeof body.iv === 'string'))
   ) {
-    const msg: PastedData = {
-      id: generateRandomId(),
+    const msg: DataType = {
+      id: uuidv4(),
       content: body.content,
       until: Date.now() + body.keep,
       pre: body.pre,
@@ -143,6 +148,24 @@ app.post('/api/data', jsonParser, (req, res) => {
 
 app.get('/api/data', (_req, res) => {
   res.json(data)
+})
+
+app.get('/api/data/keep/:id/', (req, res) => {
+  console.log(new Date(), 'keep', req.params.id)
+  const item = data.find(({ id }) => id === req.params.id)
+  if (item) {
+    data = data.map((item) =>
+      item.id === req.params.id
+        ? {
+            ...item,
+            until: item.until + ONE_DAY_MS,
+          }
+        : item
+    )
+    res.sendStatus(200)
+  } else {
+    res.sendStatus(400)
+  }
 })
 
 app.delete('/api/data/:id', (req, res) => {
@@ -183,8 +206,8 @@ app.post('/api/files', upload.single('file'), (req, res) => {
   ) {
     const { originalname, mimetype, path, size } = file
 
-    const newFile: PastedFile = {
-      id: generateRandomId(),
+    const newFile: FileType = {
+      id: uuidv4(),
       originalname,
       mimetype,
       path,

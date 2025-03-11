@@ -1,17 +1,20 @@
-const encoder = new TextEncoder('utf-8')
+const encoder = new TextEncoder()
 const decoder = new TextDecoder('utf-8')
 
 const PBKDF2_ITERATIONS = 1_000_000
 
 const AES_KEY_BIT_LENGTH = 256
 
-export const arrayBufferToString = (buf) =>
-  String.fromCharCode.apply(null, new Uint8Array(buf))
+export const arrayBufferToString = (buf: ArrayBuffer) =>
+  String.fromCharCode.apply(null, Array.from(new Uint8Array(buf)))
+//  String.fromCharCode.apply(null, new Uint8Array(buf))
 
-export const arrayBufferToBase64 = (buf) =>
-  window.btoa(arrayBufferToString(buf))
+export const arrayBufferToBase64 = (buf: ArrayBuffer) => {
+  const str = arrayBufferToString(buf)
+  return window.btoa(str)
+}
 
-export const stringToArrayBuffer = (str) => {
+export const stringToArrayBuffer = (str: string) => {
   const buf = new ArrayBuffer(str.length)
   const bufView = new Uint8Array(buf)
   for (let i = 0, strLen = str.length; i < strLen; i++) {
@@ -20,13 +23,13 @@ export const stringToArrayBuffer = (str) => {
   return new Uint8Array(buf)
 }
 
-export const base64toArrayBuffer = (str) =>
+export const base64toArrayBuffer = (str: string) =>
   stringToArrayBuffer(window.atob(str))
 
 export const getRandomValues = (size = 16) =>
   crypto.getRandomValues(new Uint8Array(size))
 
-const getKeyFromPassword = (password, salt) =>
+const getKeyFromPassword = (password: string, salt: Uint8Array) =>
   window.crypto.subtle
     .importKey('raw', encoder.encode(password), { name: 'PBKDF2' }, false, [
       'deriveBits',
@@ -47,7 +50,7 @@ const getKeyFromPassword = (password, salt) =>
       )
     )
 
-export const encrypt = (password, msg) => {
+export const encrypt = (password: string, msg: string) => {
   const salt = getRandomValues()
   const iv = getRandomValues() // always generate a new initialization vector
 
@@ -73,10 +76,10 @@ export const encrypt = (password, msg) => {
 }
 
 export const decrypt = (
-  password,
-  saltInBase64,
-  ivInBase64,
-  encryptedDataInBase64
+  password: string,
+  saltInBase64: string,
+  ivInBase64: string,
+  encryptedDataInBase64: string
 ) => {
   const salt = base64toArrayBuffer(saltInBase64)
   const iv = base64toArrayBuffer(ivInBase64)

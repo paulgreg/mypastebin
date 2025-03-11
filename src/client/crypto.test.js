@@ -6,7 +6,7 @@ import {
   encrypt,
   decrypt,
   getRandomValues,
-} from '../../src/client/crypto'
+} from './crypto'
 
 describe('crypto', () => {
   describe('arraybuffer to/from string or base64 conversions', () => {

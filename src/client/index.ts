@@ -1,32 +1,52 @@
+import { DatasType, FilesType } from '../PasteBinTypes.js'
 import { decrypt, encrypt } from './crypto.js'
 import {
   hideErrorPaste,
   displayErrorPaste,
   formatSize,
   formatDate,
-} from './utils.js'
+} from './utils'
 
-const form = document.querySelector('form')
-const textarea = document.querySelector('textarea')
-const inputFile = document.querySelector('input[type=file]')
-const passwordContainer = document.querySelector('.passwordContainer')
-const passwordInput = document.querySelector('#password')
-const submitButton = document.querySelector('input[type=submit]')
-const keepSelect = document.querySelector('select[name="keep"]')
-const typeSelect = document.querySelector('select[name="type"]')
-const errorPaste = document.querySelector('.error.paste')
-const pastedData = document.querySelector('#pastedData')
-const pastedFiles = document.querySelector('#pastedFiles')
-const templatePastedText = document.querySelector('#templatePastedText')
-const templatePastedCode = document.querySelector('#templatePastedCode')
-const templatePastedFile = document.querySelector('#templatePastedFile')
+const origin = import.meta.env.DEV ? 'http://localhost:6080' : '.'
+
+const form = document.querySelector('form') as HTMLFormElement
+const textarea = document.querySelector('textarea') as HTMLTextAreaElement
+const inputFile = document.querySelector('input[type=file]') as HTMLInputElement
+const passwordContainer = document.querySelector(
+  '.passwordContainer'
+) as HTMLDivElement
+const passwordInput = document.querySelector('#password') as HTMLInputElement
+const submitButton = document.querySelector(
+  'input[type=submit]'
+) as HTMLInputElement
+const keepSelect = document.querySelector(
+  'select[name="keep"]'
+) as HTMLSelectElement
+const typeSelect = document.querySelector(
+  'select[name="type"]'
+) as HTMLSelectElement
+const errorPaste = document.querySelector(
+  '.error.paste'
+) as HTMLParagraphElement
+const pastedData = document.querySelector('#pastedData') as HTMLDivElement
+const pastedFiles = document.querySelector('#pastedFiles') as HTMLDivElement
+const templatePastedText = document.querySelector(
+  '#templatePastedText'
+) as HTMLTemplateElement
+const templatePastedCode = document.querySelector(
+  '#templatePastedCode'
+) as HTMLTemplateElement
+const templatePastedFile = document.querySelector(
+  '#templatePastedFile'
+) as HTMLTemplateElement
 
 const TYPE_TEXT = 'type_text'
 const TYPE_CODE = 'type_code'
 const TYPE_FILE = 'type_file'
 
-typeSelect.addEventListener('change', (e) => {
-  if (e.target.value === TYPE_FILE) {
+typeSelect.addEventListener('change', (e: Event) => {
+  const target = e.target as HTMLSelectElement
+  if (target.value === TYPE_FILE) {
     inputFile.style.display = 'inline-block'
     textarea.style.display = 'none'
     passwordContainer.style.display = 'none'
@@ -37,16 +57,17 @@ typeSelect.addEventListener('change', (e) => {
   }
 })
 
-const decryptData = (id, salt, iv) => (e) => {
+const decryptData = (id: string, salt: string, iv: string) => (e: Event) => {
   e.preventDefault()
   e.stopPropagation()
   const userPassword = prompt('password ?')
 
   const article = document.getElementById(id)
-  const data = article.querySelector('.data')
+  const data = article?.querySelector('.data')
+  if (!userPassword || !data?.textContent) throw new Error('Can’t continue')
   decrypt(userPassword, salt, iv, data.textContent)
     .then((msg) => {
-      article.classList.remove('encrypted')
+      article?.classList.remove('encrypted')
       data.textContent = msg
     })
     .catch((e) => {
@@ -56,9 +77,9 @@ const decryptData = (id, salt, iv) => (e) => {
 }
 
 const fetchData = () =>
-  fetch('./api/data')
+  fetch(`${origin}/api/data`)
     .then((response) => response.json())
-    .then((data) => {
+    .then((data: DatasType) => {
       if (data.length === 0) {
         pastedData.innerHTML = 'No data posted'
         return
@@ -71,36 +92,38 @@ const fetchData = () =>
         const template = item.pre ? templatePastedCode : templatePastedText
         const child = document.importNode(template.content, true)
         const article = child.querySelector('article')
-        article.setAttribute('id', item.id)
+        article?.setAttribute('id', item.id)
         if (item.iv && item.salt) {
-          article.classList.add('encrypted')
+          article?.classList.add('encrypted')
           const decryptLink = child.querySelector('.decrypt')
-          decryptLink.addEventListener(
+          decryptLink?.addEventListener(
             'click',
             decryptData(item.id, item.salt, item.iv),
             false
           )
         }
-        child.querySelector('.data').textContent = item.content
+        const data = child.querySelector('.data')
+        if (data) data.textContent = item.content
         const until = child.querySelector('.until')
-        until.textContent = until.textContent.replace(
-          '{}',
-          formatDate(item.until)
-        )
+        if (until?.textContent)
+          until.textContent = until.textContent.replace(
+            '{}',
+            formatDate(item.until)
+          )
         child
           .querySelector('a.removeData')
-          .addEventListener('click', removeData(item.id), false)
+          ?.addEventListener('click', removeData(item.id), false)
 
         fragment.append(child)
       })
       pastedData.appendChild(fragment)
     })
 
-const removeData = (id) => (e) => {
+const removeData = (id: string) => (e: Event) => {
   e.stopPropagation()
   e.preventDefault()
   if (confirm(`remove data ?`)) {
-    fetch(`./api/data/${id}`, {
+    fetch(`${origin}/api/data/${id}`, {
       method: 'DELETE',
     })
       .then((response) => {
@@ -113,23 +136,23 @@ const removeData = (id) => (e) => {
   }
 }
 
-const postDataOrFile = (e) => {
-  hideErrorPaste(errorPaste)
+const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
   e.stopPropagation()
   e.preventDefault()
+  hideErrorPaste(errorPaste)
 
-  if (typeSelect.value === TYPE_FILE) {
-    if (inputFile.value.length === 0) {
+  if (typeSelect?.value === TYPE_FILE) {
+    if (inputFile?.value.length === 0) {
       displayErrorPaste(errorPaste, 'No file to post')
       return
     }
 
-    const files = inputFile.files
+    const files = inputFile?.files ?? []
     const formData = new FormData()
     formData.append('file', files[0])
-    formData.append('keep', parseInt(keepSelect.value, 10))
+    formData.append('keep', String(parseInt(keepSelect?.value ?? '0', 10)))
 
-    fetch('./api/files', {
+    fetch(`${origin}/api/files`, {
       method: 'POST',
       body: formData,
     })
@@ -137,6 +160,7 @@ const postDataOrFile = (e) => {
         if (response.status === 200) {
           inputFile.value = ''
           fetchFiles()
+          alert('file posted')
         } else {
           console.log(response)
           displayErrorPaste(errorPaste)
@@ -146,25 +170,28 @@ const postDataOrFile = (e) => {
         console.error(e)
         displayErrorPaste(errorPaste)
       })
-  } else if (typeSelect.value === TYPE_TEXT || typeSelect.value === TYPE_CODE) {
-    if (textarea.value.length === 0) {
+  } else if (
+    typeSelect?.value === TYPE_TEXT ||
+    typeSelect?.value === TYPE_CODE
+  ) {
+    if (textarea?.value.length === 0) {
       displayErrorPaste(errorPaste, 'No data to post')
       return
     }
 
     Promise.resolve()
       .then(() => {
-        const content = textarea.value
-        if (passwordInput.value.length === 0) {
-          return { content }
+        const content = textarea?.value
+        if (passwordInput?.value.length === 0) {
+          return { content, iv: '', salt: '' }
         } else {
-          submitButton.disabled = true
-          return encrypt(passwordInput.value, content)
+          if (submitButton) submitButton.disabled = true
+          return encrypt(passwordInput?.value, content)
         }
       })
       .then(({ content, iv, salt }) => {
         submitButton.disabled = false
-        return fetch('./api/data', {
+        return fetch(`${origin}/api/data`, {
           method: 'POST',
           headers: {
             Accept: 'application/json',
@@ -197,11 +224,11 @@ const postDataOrFile = (e) => {
   }
 }
 
-const removeFile = (name, id) => (e) => {
+const removeFile = (name: string, id: string) => (e: MouseEvent) => {
   e.stopPropagation()
   e.preventDefault()
   if (confirm(`remove ${name} ?`)) {
-    fetch(`./api/files/${id}`, {
+    fetch(`${origin}/api/files/${id}`, {
       method: 'DELETE',
     })
       .then((response) => {
@@ -215,9 +242,10 @@ const removeFile = (name, id) => (e) => {
 }
 
 const fetchFiles = () =>
-  fetch('./api/files')
+  fetch(`${origin}/api/files`)
     .then((response) => response.json())
-    .then((data) => {
+    .then((data: FilesType) => {
+      if (!pastedFiles) return
       if (data.length === 0) {
         pastedFiles.innerHTML = 'No file posted'
         return
@@ -227,30 +255,36 @@ const fetchFiles = () =>
 
       const fragment = document.createElement('ul')
       data.forEach((file) => {
+        if (!templatePastedFile) return
         const child = document.importNode(templatePastedFile.content, true)
         const a = child.querySelector('a')
+        if (!a) throw new Error('Missing a')
         a.textContent = file.originalname
-        a.setAttribute('href', `./api/files/${file.id}`)
-        child.querySelector('.size').textContent = formatSize(file.size)
+        a.setAttribute('href', `${origin}/api/files/${file.id}`)
+        const size = child.querySelector('.size')
+        if (!size) return
+        size.textContent = formatSize(file.size)
         const until = child.querySelector('.until')
+        if (!until?.textContent) return
         until.textContent = until.textContent.replace(
           '{}',
           formatDate(file.until)
         )
-        child
-          .querySelector('a.removeFile')
-          .addEventListener(
-            'click',
-            removeFile(file.originalname, file.id),
-            false
-          )
+        const removeLink = child.querySelector(
+          'a.removeFile'
+        ) as HTMLAnchorElement
+        removeLink.addEventListener(
+          'click',
+          removeFile(file.originalname, file.id),
+          false
+        )
 
         fragment.append(child)
       })
       pastedFiles.appendChild(fragment)
     })
 
-textarea.addEventListener(
+textarea?.addEventListener(
   'keydown',
   (e) => {
     if (e.ctrlKey && e.key === 'Enter') postDataOrFile(e)
@@ -258,7 +292,7 @@ textarea.addEventListener(
   false
 )
 
-form.addEventListener('submit', postDataOrFile, false)
+form?.addEventListener('submit', postDataOrFile, false)
 
 fetchData()
 fetchFiles()

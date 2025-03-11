@@ -1,4 +1,4 @@
-export type PastedData = {
+export type DataType = {
   id: string
   content: string
   until: number
@@ -7,9 +7,9 @@ export type PastedData = {
   salt?: string
 }
 
-export type PastedDatas = Array<PastedData>
+export type DatasType = Array<DataType>
 
-export type PastedFile = {
+export type FileType = {
   id: string
   path: string
   originalname: string
@@ -18,4 +18,4 @@ export type PastedFile = {
   until: number
 }
 
-export type PastedFiles = Array<PastedFile>
+export type FilesType = Array<FileType>

@@ -4,8 +4,9 @@
   "description": "Simple pastebin",
   "main": "src/server/index.ts",
   "scripts": {
-    "dev": "tsx src/server",
-    "start": "node src/server",
+    "dev:server": "tsx --watch src/server",
+    "dev:client": "vite",
+    "start": "tsx src/server",
     "test": "vitest"
   },
   "author": "Grégory PAUL",
@@ -13,7 +14,9 @@
   "dependencies": {
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
-    "tsx": "^4.19.3"
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
