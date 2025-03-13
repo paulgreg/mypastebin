@@ -1,14 +1,30 @@
 import fs from 'fs'
-import path from 'path'
 import express from 'express'
 import multer from 'multer'
-import { DataType, DatasType, FileType, FilesType } from '../PasteBinTypes'
+import {
+  ClientFilesType,
+  DataType,
+  DatasType,
+  ServerFileType,
+  ServerFilesType,
+} from '../PasteBinTypes'
 import { v4 as uuidv4 } from 'uuid'
+import {
+  filterById,
+  findItem,
+  incrementUntilById,
+  isNumeric,
+  isString,
+  ONE_MINUTE_MS,
+  ONE_WEEK_MS,
+} from './utils'
 
 const ONE_MB = 1_048_576
 
 const CUMULATIVE_MAX_DATA_LENGTH = ONE_MB // cumulative limit for posted data
 const CUMULATIVE_MAX_FILES_SIZE = 1000 * ONE_MB // culumative limit for posted files
+
+const MAX_KEEP_TIME = ONE_WEEK_MS
 
 const upload = multer({
   dest: '/tmp/',
@@ -27,13 +43,8 @@ const jsonParser = express.json({
   limit: '100kb',
 })
 
-const MINUTE_MS = 1000 * 60
-const HOUR_MS = MINUTE_MS * 60
-const ONE_DAY_MS = HOUR_MS * 24
-const ONE_WEEK_MS = ONE_DAY_MS * 7
-
 let data: DatasType = []
-let files: FilesType = []
+let files: ServerFilesType = []
 
 // handling CORS for DEV
 if (process.env.NODE_ENV !== 'production') {
@@ -49,13 +60,13 @@ if (process.env.NODE_ENV !== 'production') {
     }
   })
 }
+// End CORS for DEV
 
 app.listen(process.env.PORT ?? defaultPort, () => {
   console.log(`Paste app listening on port ${defaultPort}`)
 })
 
 // Periodic cleanup
-
 const periodicFilterData = () => {
   const nbBefore = data.length
   data = data.filter((item) => item.until >= Date.now())
@@ -63,11 +74,11 @@ const periodicFilterData = () => {
   if (nbAfter !== nbBefore) {
     console.log(new Date(), 'periodicFilterData: ', nbBefore, ' -> ', nbAfter)
   }
-  setTimeout(periodicFilterData, MINUTE_MS)
+  setTimeout(periodicFilterData, ONE_MINUTE_MS)
 }
 periodicFilterData()
 
-const removeFile = (file: FileType | Express.Multer.File) => {
+const removeFile = (file: ServerFileType | Express.Multer.File) => {
   if (fs.existsSync(file.path)) {
     console.log(new Date(), 'removing file', file)
     fs.unlinkSync(file.path)
@@ -95,12 +106,11 @@ const periodicFilterFiles = () => {
   if (nbAfter !== nbBefore) {
     console.log(new Date(), 'periodicFilterFiles:', nbBefore, ' -> ', nbAfter)
   }
-  setTimeout(periodicFilterFiles, MINUTE_MS)
+  setTimeout(periodicFilterFiles, ONE_MINUTE_MS)
 }
 periodicFilterFiles()
 
 // Text data
-
 const checkDataLength = (newContentLength: number) => {
   const dataLength = data.reduce(
     (acc, current) => acc + current.content.length,
@@ -118,13 +128,12 @@ const checkDataLength = (newContentLength: number) => {
 
 app.post('/api/data', jsonParser, (req, res) => {
   const body = req.body
-
   if (
     typeof body.content === 'string' &&
     body.content.length > 0 &&
     checkDataLength(body.content?.length) &&
     typeof body.keep === 'number' &&
-    body.keep <= ONE_WEEK_MS &&
+    body.keep <= MAX_KEEP_TIME &&
     typeof body.pre === 'boolean' &&
     ((!body.salt && !body.iv) ||
       (typeof body.salt === 'string' && typeof body.iv === 'string'))
@@ -150,29 +159,11 @@ app.get('/api/data', (_req, res) => {
   res.json(data)
 })
 
-app.get('/api/data/keep/:id/', (req, res) => {
-  console.log(new Date(), 'keep', req.params.id)
-  const item = data.find(({ id }) => id === req.params.id)
-  if (item) {
-    data = data.map((item) =>
-      item.id === req.params.id
-        ? {
-            ...item,
-            until: item.until + ONE_DAY_MS,
-          }
-        : item
-    )
-    res.sendStatus(200)
-  } else {
-    res.sendStatus(400)
-  }
-})
-
 app.delete('/api/data/:id', (req, res) => {
   console.log(new Date(), 'deleting data', req.params.id)
-  const item = data.find(({ id }) => id === req.params.id)
+  const item = findItem(data, req.params.id)
   if (item) {
-    data = data.filter(({ id }) => id !== req.params.id)
+    data = filterById(data, req.params.id)
     res.sendStatus(200)
   } else {
     res.sendStatus(400)
@@ -202,13 +193,13 @@ app.post('/api/files', upload.single('file'), (req, res) => {
     file.size &&
     checkFilesLength(file.size) &&
     keep > 0 &&
-    keep <= ONE_WEEK_MS
+    keep <= MAX_KEEP_TIME
   ) {
     const { originalname, mimetype, path, size } = file
 
-    const newFile: FileType = {
+    const newFile: ServerFileType = {
       id: uuidv4(),
-      originalname,
+      originalname: Buffer.from(originalname, 'latin1').toString('utf8'),
       mimetype,
       path,
       size,
@@ -225,7 +216,7 @@ app.post('/api/files', upload.single('file'), (req, res) => {
 })
 
 app.get('/api/files', (_req, res) => {
-  const availableFiles = files.map(
+  const availableFiles: ClientFilesType = files.map(
     ({ id, originalname, mimetype, size, until }) => ({
       id,
       originalname,
@@ -239,7 +230,7 @@ app.get('/api/files', (_req, res) => {
 
 app.get('/api/files/:id', (req, res) => {
   console.log(new Date(), 'requesting', req.params.id)
-  const file = files.find(({ id }) => id === req.params.id)
+  const file = findItem(files, req.params.id)
   if (file && file.until > Date.now()) {
     res.setHeader('content-type', file.mimetype)
     res.setHeader(
@@ -254,7 +245,7 @@ app.get('/api/files/:id', (req, res) => {
 
 app.delete('/api/files/:id', (req, res) => {
   console.log(new Date(), 'deleting file', req.params.id)
-  const file = files.find(({ id }) => id === req.params.id)
+  const file = findItem(files, req.params.id)
   if (file) {
     try {
       removeFile(file)
@@ -266,4 +257,21 @@ app.delete('/api/files/:id', (req, res) => {
   } else {
     res.sendStatus(400)
   }
+})
+
+app.get('/api/data/keep/:id/', (req, res) => {
+  console.log(new Date(), 'keep data', req.params.id)
+  data = incrementUntilById(data, req.params.id, MAX_KEEP_TIME, req.query.time)
+  res.sendStatus(200)
+})
+
+app.get('/api/file/keep/:id/', (req, res) => {
+  console.log(new Date(), 'keep file', req.params.id)
+  files = incrementUntilById(
+    files,
+    req.params.id,
+    MAX_KEEP_TIME,
+    req.query.time
+  )
+  res.sendStatus(200)
 })

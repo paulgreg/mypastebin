@@ -1,3 +1,8 @@
+export enum ContentTypeEnum {
+  data = 'data',
+  file = 'file',
+}
+
 export type DataType = {
   id: string
   content: string
@@ -9,13 +14,17 @@ export type DataType = {
 
 export type DatasType = Array<DataType>
 
-export type FileType = {
+export type ClientFileType = {
   id: string
-  path: string
   originalname: string
   mimetype: string
   size: number
   until: number
 }
+export type ClientFilesType = Array<ClientFileType>
 
-export type FilesType = Array<FileType>
+export type ServerFileType = ClientFileType & {
+  path: string
+}
+
+export type ServerFilesType = Array<ServerFileType>

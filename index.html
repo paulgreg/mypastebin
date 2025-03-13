@@ -30,12 +30,12 @@
             <label
               >Keep :
               <select name="keep" autocomplete="off">
-                <option value="60000">1 minute</option>
-                <option value="300000" selected>5 minutes</option>
-                <option value="3600000">1 hour</option>
-                <option value="43200000">12 hours</option>
-                <option value="86400000">24 hours</option>
-                <option value="604800000">7 days</option>
+                <option value="60">1 minute</option>
+                <option value="300" selected>5 minutes</option>
+                <option value="3600">1 hour</option>
+                <option value="43200">12 hours</option>
+                <option value="86400">24 hours</option>
+                <option value="604000">7 days</option>
               </select>
             </label>
             <label
@@ -84,6 +84,9 @@
             <blockquote class="data"></blockquote>
             <a href="#" class="decrypt">decrypt</a>
             <small class="until">valid until {}</small>
+            <a class="add" data-time="3600" href="#">+1h</a>
+            <a class="add" data-time="43200" href="#">+12h</a>
+            <a class="add" data-time="86400" href="#">+24h</a>
             <a class="removeData" href="#">delete</a>
           </article>
         </template>
@@ -96,6 +99,9 @@
             <a class="pastedFile">{0}</a>
             <small class="size">{}</small>,
             <small class="until">valid until {}</small>
+            <a class="add" data-time="3600" href="#">+1h</a>
+            <a class="add" data-time="43200" href="#">+12h</a>
+            <a class="add" data-time="86400" href="#">+24h</a>
             <a class="removeFile" href="#">delete</a>
           </li>
         </template>

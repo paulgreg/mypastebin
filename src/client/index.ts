@@ -1,4 +1,8 @@
-import { DatasType, FilesType } from '../PasteBinTypes.js'
+import {
+  ContentTypeEnum,
+  ClientFilesType,
+  DatasType,
+} from '../PasteBinTypes.js'
 import { decrypt, encrypt } from './crypto.js'
 import {
   hideErrorPaste,
@@ -112,29 +116,26 @@ const fetchData = () =>
           )
         child
           .querySelector('a.removeData')
-          ?.addEventListener('click', removeData(item.id), false)
+          ?.addEventListener(
+            'click',
+            removeDataOrFile(ContentTypeEnum.data, item.id),
+            false
+          )
+
+        child
+          .querySelectorAll('a.add')
+          .forEach((addEl) =>
+            addEl.addEventListener(
+              'click',
+              keepDataOrFile(ContentTypeEnum.data, item.id),
+              false
+            )
+          )
 
         fragment.append(child)
       })
       pastedData.appendChild(fragment)
     })
-
-const removeData = (id: string) => (e: Event) => {
-  e.stopPropagation()
-  e.preventDefault()
-  if (confirm(`remove data ?`)) {
-    fetch(`${origin}/api/data/${id}`, {
-      method: 'DELETE',
-    })
-      .then((response) => {
-        console.log(response)
-        fetchData()
-      })
-      .catch((e) => {
-        console.error(e)
-      })
-  }
-}
 
 const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
   e.stopPropagation()
@@ -150,7 +151,10 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
     const files = inputFile?.files ?? []
     const formData = new FormData()
     formData.append('file', files[0])
-    formData.append('keep', String(parseInt(keepSelect?.value ?? '0', 10)))
+    formData.append(
+      'keep',
+      String(parseInt(keepSelect?.value ?? '0', 10) * 1000)
+    )
 
     fetch(`${origin}/api/files`, {
       method: 'POST',
@@ -199,7 +203,7 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
           },
           body: JSON.stringify({
             content,
-            keep: parseInt(keepSelect.value, 10),
+            keep: parseInt(keepSelect.value, 10) * 1000,
             pre: typeSelect.value === TYPE_CODE,
             iv,
             salt,
@@ -224,27 +228,45 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
   }
 }
 
-const removeFile = (name: string, id: string) => (e: MouseEvent) => {
+const keepDataOrFile = (type: ContentTypeEnum, id: string) => (e: Event) => {
   e.stopPropagation()
   e.preventDefault()
-  if (confirm(`remove ${name} ?`)) {
-    fetch(`${origin}/api/files/${id}`, {
-      method: 'DELETE',
+  const target = e.target as HTMLAnchorElement
+  const time = parseInt(target.dataset.time ?? '0', 10) * 1000
+  fetch(`${origin}/api/${type}/keep/${id}?time=${time}`, {
+    method: 'GET',
+  })
+    .then(() => {
+      if (type === ContentTypeEnum.data) fetchData()
+      else if (type === ContentTypeEnum.file) fetchFiles()
     })
-      .then((response) => {
-        console.log(response)
-        fetchFiles()
-      })
-      .catch((e) => {
-        console.error(e)
-      })
-  }
+    .catch((e) => {
+      console.error(e)
+    })
 }
+
+const removeDataOrFile =
+  (type: ContentTypeEnum, id: string, name?: string) => (e: Event) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (confirm(`remove ${name ?? 'data'} ?`)) {
+      fetch(`${origin}/api/${type}/${id}`, {
+        method: 'DELETE',
+      })
+        .then(() => {
+          if (type === ContentTypeEnum.data) fetchData()
+          else if (type === ContentTypeEnum.file) fetchFiles()
+        })
+        .catch((e) => {
+          console.error(e)
+        })
+    }
+  }
 
 const fetchFiles = () =>
   fetch(`${origin}/api/files`)
     .then((response) => response.json())
-    .then((data: FilesType) => {
+    .then((data: ClientFilesType) => {
       if (!pastedFiles) return
       if (data.length === 0) {
         pastedFiles.innerHTML = 'No file posted'
@@ -275,9 +297,19 @@ const fetchFiles = () =>
         ) as HTMLAnchorElement
         removeLink.addEventListener(
           'click',
-          removeFile(file.originalname, file.id),
+          removeDataOrFile(ContentTypeEnum.file, file.originalname, file.id),
           false
         )
+
+        child
+          .querySelectorAll('a.add')
+          .forEach((addEl) =>
+            addEl.addEventListener(
+              'click',
+              keepDataOrFile(ContentTypeEnum.file, file.id),
+              false
+            )
+          )
 
         fragment.append(child)
       })

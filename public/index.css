@@ -75,7 +75,6 @@ blockquote {
   text-overflow: ellipsis;
 }
 
-.encrypted .decrypt,
 .encrypted .decrypt {
   display: block;
 }
@@ -93,9 +92,16 @@ blockquote {
   display: none;
 }
 
+a.add,
 a.removeData,
 a.removeFile {
+  padding: 0 0.2em;
   cursor: pointer;
   font-size: small;
   text-decoration: underline;
+}
+
+a.removeData,
+a.removeFile {
+  color: red;
 }
