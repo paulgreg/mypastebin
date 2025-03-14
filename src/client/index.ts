@@ -4,16 +4,11 @@ import {
   DatasType,
 } from '../PasteBinTypes.js'
 import { decrypt, encrypt } from './crypto.js'
-import {
-  hideErrorPaste,
-  displayErrorPaste,
-  formatSize,
-  formatDate,
-} from './utils'
+import { formatSize, formatDate } from './client.utils.js'
 
 const origin = import.meta.env.DEV ? 'http://localhost:6080' : '.'
 
-const form = document.querySelector('form') as HTMLFormElement
+const form = document.querySelector('form#pastebin') as HTMLFormElement
 const textarea = document.querySelector('textarea') as HTMLTextAreaElement
 const inputFile = document.querySelector('input[type=file]') as HTMLInputElement
 const passwordContainer = document.querySelector(
@@ -29,9 +24,6 @@ const keepSelect = document.querySelector(
 const typeSelect = document.querySelector(
   'select[name="type"]'
 ) as HTMLSelectElement
-const errorPaste = document.querySelector(
-  '.error.paste'
-) as HTMLParagraphElement
 const pastedData = document.querySelector('#pastedData') as HTMLDivElement
 const pastedFiles = document.querySelector('#pastedFiles') as HTMLDivElement
 const templatePastedText = document.querySelector(
@@ -43,6 +35,8 @@ const templatePastedCode = document.querySelector(
 const templatePastedFile = document.querySelector(
   '#templatePastedFile'
 ) as HTMLTemplateElement
+const dialog = document.querySelector('dialog') as HTMLDialogElement
+const dialogMessage = dialog.querySelector('p') as HTMLParagraphElement
 
 const TYPE_TEXT = 'type_text'
 const TYPE_CODE = 'type_code'
@@ -61,6 +55,12 @@ typeSelect.addEventListener('change', (e: Event) => {
   }
 })
 
+const displayMessage = (msg: string, error: boolean) => {
+  dialogMessage.innerText = msg
+  dialogMessage.classList[error ? 'add' : 'remove']('error')
+  dialog.showModal()
+}
+
 const decryptData = (id: string, salt: string, iv: string) => (e: Event) => {
   e.preventDefault()
   e.stopPropagation()
@@ -75,7 +75,7 @@ const decryptData = (id: string, salt: string, iv: string) => (e: Event) => {
       data.textContent = msg
     })
     .catch((e) => {
-      alert('decryption failed, bad password ?')
+      displayMessage('decryption failed, bad password ?', true)
       console.error(e)
     })
 }
@@ -140,11 +140,10 @@ const fetchData = () =>
 const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
   e.stopPropagation()
   e.preventDefault()
-  hideErrorPaste(errorPaste)
 
   if (typeSelect?.value === TYPE_FILE) {
     if (inputFile?.value.length === 0) {
-      displayErrorPaste(errorPaste, 'No file to post')
+      displayMessage('No file to post', true)
       return
     }
 
@@ -164,22 +163,21 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
         if (response.status === 200) {
           inputFile.value = ''
           fetchFiles()
-          alert('file posted')
+          displayMessage('file posted', false)
         } else {
-          console.log(response)
-          displayErrorPaste(errorPaste)
+          throw new Error(`error: ${response.status}`)
         }
       })
       .catch((e) => {
         console.error(e)
-        displayErrorPaste(errorPaste)
+        displayMessage('Error while posting file', true)
       })
   } else if (
     typeSelect?.value === TYPE_TEXT ||
     typeSelect?.value === TYPE_CODE
   ) {
     if (textarea?.value.length === 0) {
-      displayErrorPaste(errorPaste, 'No data to post')
+      displayMessage('No data to post', true)
       return
     }
 
@@ -215,15 +213,14 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
           textarea.value = ''
           passwordInput.value = ''
           fetchData()
-          alert('data posted')
+          displayMessage('data posted', false)
         } else {
-          console.log(response)
-          displayErrorPaste(errorPaste)
+          throw new Error(`error: ${response.status}`)
         }
       })
       .catch((e) => {
         console.error(e)
-        displayErrorPaste(errorPaste)
+        displayMessage('Error while posting data', true)
       })
   }
 }

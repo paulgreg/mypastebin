@@ -83,13 +83,21 @@ blockquote {
   margin-bottom: 0;
 }
 
+dialog {
+  width: 80%;
+  background-color: beige;
+}
+dialog form {
+  display: flex;
+}
+dialog form p {
+  flex-grow: 1;
+}
+dialog::backdrop {
+  background: rgba(150, 150, 150, 0.25);
+}
 .error {
   color: red;
-  font-weight: bold;
-}
-
-.error.paste {
-  display: none;
 }
 
 a.add,

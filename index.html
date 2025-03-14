@@ -23,9 +23,24 @@
       <h1>My pastebin</h1>
     </header>
     <main>
+      <dialog>
+        <form>
+          <p></p>
+          <span>
+            <button
+              type="submit"
+              aria-label="close"
+              formmethod="dialog"
+              formnovalidate
+            >
+              X
+            </button>
+          </span>
+        </form>
+      </dialog>
       <section>
         <h2>Paste</h2>
-        <form>
+        <form id="pastebin">
           <div class="options">
             <label
               >Keep :
@@ -66,7 +81,6 @@
           </div>
           <input type="submit" value="post" />
         </form>
-        <p class="error paste"></p>
       </section>
       <section>
         <h2>Pasted content</h2>

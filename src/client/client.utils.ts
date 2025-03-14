@@ -1,17 +1,3 @@
-export const hideErrorPaste = (errorPaste: HTMLParagraphElement | null) => {
-  if (errorPaste) errorPaste.style.display = ''
-}
-
-export const displayErrorPaste = (
-  errorPaste: HTMLParagraphElement | null,
-  msg = 'An error occured :/'
-) => {
-  if (errorPaste) {
-    errorPaste.textContent = msg
-    errorPaste.style.display = 'block'
-  }
-}
-
 export const padZero = (d = 0) => `${d < 10 ? '0' : ''}${d}`
 
 export const formatDate = (ms: number) => {
