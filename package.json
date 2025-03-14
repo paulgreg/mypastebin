@@ -6,6 +6,7 @@
   "scripts": {
     "dev:server": "tsx --watch src/server",
     "dev:client": "vite",
+    "build": "vite build",
     "start": "tsx src/server",
     "test": "vitest"
   },
