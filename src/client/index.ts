@@ -8,7 +8,10 @@ import { formatSize, formatDate } from './client.utils.js'
 
 const origin = import.meta.env.DEV ? 'http://localhost:6080' : '.'
 
-const form = document.querySelector('form#pastebin') as HTMLFormElement
+const form = document.querySelector('#pastebin form') as HTMLFormElement
+const details = document.querySelector(
+  '#pastebin details'
+) as HTMLDetailsElement
 const textarea = document.querySelector('textarea') as HTMLTextAreaElement
 const inputFile = document.querySelector('input[type=file]') as HTMLInputElement
 const passwordContainer = document.querySelector(
@@ -55,6 +58,8 @@ typeSelect.addEventListener('change', (e: Event) => {
   }
 })
 
+const closeDetails = () => details.removeAttribute('open')
+
 const displayMessage = (msg: string, error: boolean) => {
   dialogMessage.innerText = msg
   dialogMessage.classList[error ? 'add' : 'remove']('error')
@@ -89,9 +94,12 @@ const fetchData = () =>
         return
       }
 
+      closeDetails()
+
       pastedData.innerHTML = ''
 
       const fragment = new DocumentFragment()
+
       data.forEach((item) => {
         const template = item.pre ? templatePastedCode : templatePastedText
         const child = document.importNode(template.content, true)
@@ -269,6 +277,7 @@ const fetchFiles = () =>
         pastedFiles.innerHTML = 'No file posted'
         return
       }
+      closeDetails()
 
       pastedFiles.innerHTML = ''
 

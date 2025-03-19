@@ -38,49 +38,54 @@
           </span>
         </form>
       </dialog>
-      <section>
+      <section id="pastebin">
         <h2>Paste</h2>
-        <form id="pastebin">
-          <div class="options">
-            <label
-              >Keep :
-              <select name="keep" autocomplete="off">
-                <option value="60">1 minute</option>
-                <option value="300" selected>5 minutes</option>
-                <option value="3600">1 hour</option>
-                <option value="43200">12 hours</option>
-                <option value="86400">24 hours</option>
-                <option value="604000">7 days</option>
-              </select>
-            </label>
-            <label
-              >Type :
-              <select name="type" autocomplete="off">
-                <option value="type_text" selected>text</option>
-                <option value="type_code">code</option>
-                <option value="type_file">file</option>
-              </select>
-            </label>
-          </div>
-          <textarea
-            autocomplete="off"
-            autofocus
-            placeholder="type here what you want to paste..."
-          ></textarea>
-          <input type="file" />
-          <div class="passwordContainer">
-            <label for="password">Optional password to encrypt message :</label>
-            <input
-              type="text"
-              id="password"
-              name="password"
-              spellcheck="false"
+        <details open>
+          <summary>Form</summary>
+          <form>
+            <div class="options">
+              <label
+                >Keep :
+                <select name="keep" autocomplete="off">
+                  <option value="60">1 minute</option>
+                  <option value="300" selected>5 minutes</option>
+                  <option value="3600">1 hour</option>
+                  <option value="43200">12 hours</option>
+                  <option value="86400">24 hours</option>
+                  <option value="604000">7 days</option>
+                </select>
+              </label>
+              <label
+                >Type :
+                <select name="type" autocomplete="off">
+                  <option value="type_text" selected>text</option>
+                  <option value="type_code">code</option>
+                  <option value="type_file">file</option>
+                </select>
+              </label>
+            </div>
+            <textarea
               autocomplete="off"
-              minlength="6"
-            />
-          </div>
-          <input type="submit" value="post" />
-        </form>
+              autofocus
+              placeholder="type here what you want to paste..."
+            ></textarea>
+            <input type="file" />
+            <div class="passwordContainer">
+              <label for="password"
+                >Optional password to encrypt message :</label
+              >
+              <input
+                type="text"
+                id="password"
+                name="password"
+                spellcheck="false"
+                autocomplete="off"
+                minlength="6"
+              />
+            </div>
+            <input type="submit" value="post" />
+          </form>
+        </details>
       </section>
       <section>
         <h2>Pasted content</h2>
