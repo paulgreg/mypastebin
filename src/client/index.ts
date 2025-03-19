@@ -272,7 +272,6 @@ const fetchFiles = () =>
   fetch(`${origin}/api/files`)
     .then((response) => response.json())
     .then((data: ClientFilesType) => {
-      if (!pastedFiles) return
       if (data.length === 0) {
         pastedFiles.innerHTML = 'No file posted'
         return
@@ -283,7 +282,6 @@ const fetchFiles = () =>
 
       const fragment = document.createElement('ul')
       data.forEach((file) => {
-        if (!templatePastedFile) return
         const child = document.importNode(templatePastedFile.content, true)
         const a = child.querySelector('a')
         if (!a) throw new Error('Missing a')
