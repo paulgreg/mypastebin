@@ -163,7 +163,7 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
       String(parseInt(keepSelect?.value ?? '0', 10) * 1000)
     )
 
-    fetch(`${origin}/api/files`, {
+    fetch(`${origin}/api/file`, {
       method: 'POST',
       body: formData,
     })
@@ -286,7 +286,7 @@ const fetchFiles = () =>
         const a = child.querySelector('a')
         if (!a) throw new Error('Missing a')
         a.textContent = file.originalname
-        a.setAttribute('href', `${origin}/api/files/${file.id}`)
+        a.setAttribute('href', `${origin}/api/file/${file.id}`)
         const size = child.querySelector('.size')
         if (!size) return
         size.textContent = formatSize(file.size)
@@ -301,7 +301,7 @@ const fetchFiles = () =>
         ) as HTMLAnchorElement
         removeLink.addEventListener(
           'click',
-          removeDataOrFile(ContentTypeEnum.file, file.originalname, file.id),
+          removeDataOrFile(ContentTypeEnum.file, file.id),
           false
         )
 

@@ -181,7 +181,7 @@ const checkFilesLength = (newFileSize: number) => {
   return newFilesLength < CUMULATIVE_MAX_FILES_SIZE
 }
 
-app.post('/api/files', upload.single('file'), (req, res) => {
+app.post('/api/file', upload.single('file'), (req, res) => {
   const file = req.file
   const keep = parseInt(req.body?.keep, 10)
   if (
@@ -226,7 +226,7 @@ app.get('/api/files', (_req, res) => {
   res.json(availableFiles)
 })
 
-app.get('/api/files/:id', (req, res) => {
+app.get('/api/file/:id', (req, res) => {
   console.log(new Date(), 'requesting', req.params.id)
   const file = findItem(files, req.params.id)
   if (file && file.until > Date.now()) {
@@ -241,7 +241,7 @@ app.get('/api/files/:id', (req, res) => {
   }
 })
 
-app.delete('/api/files/:id', (req, res) => {
+app.delete('/api/file/:id', (req, res) => {
   console.log(new Date(), 'deleting file', req.params.id)
   const file = findItem(files, req.params.id)
   if (file) {
