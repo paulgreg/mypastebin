@@ -232,7 +232,7 @@ app.get('/api/file/:id', (req, res) => {
   if (file && file.until > Date.now()) {
     res.setHeader('content-type', file.mimetype)
     res.setHeader(
-      'Content-Disposition',
+      'content-disposition',
       `inline; filename="${file.originalname}"`
     )
     res.sendFile(file.path)
