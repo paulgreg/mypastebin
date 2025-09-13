@@ -49,3 +49,9 @@ export const incrementUntilById = <T extends HasIdAndUntil>(
       )
     : arr
 }
+
+export const encodeFileName = (str: string) =>
+  encodeURIComponent(str)
+    .replace(/['()]/g, '')
+    .replace(/\*/g, '%2A')
+    .replace(/%20/g, ' ') // Preserve spaces for better readability

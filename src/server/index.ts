@@ -10,6 +10,7 @@ import {
 } from '../PasteBinTypes'
 import { v4 as uuidv4 } from 'uuid'
 import {
+  encodeFileName,
   filterById,
   findItem,
   incrementUntilById,
@@ -233,7 +234,7 @@ app.get('/api/file/:id', (req, res) => {
     res.setHeader('content-type', file.mimetype)
     res.setHeader(
       'content-disposition',
-      `inline; filename="${file.originalname}"`
+      `inline; filename="${encodeFileName(file.originalname)}"`
     )
     res.sendFile(file.path)
   } else {
