@@ -26,7 +26,7 @@ const CUMULATIVE_MAX_FILES_SIZE = 1000 * ONE_MB // culumative limit for posted f
 const MAX_KEEP_TIME = ONE_WEEK_MS
 
 const upload = multer({
-  dest: '/tmp/',
+  dest: './tmp-storage/',
   limits: {
     fieldNameSize: 100,
     fieldSize: 100 * ONE_MB,
