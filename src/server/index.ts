@@ -24,8 +24,10 @@ const CUMULATIVE_MAX_FILES_SIZE = 1000 * ONE_MB // culumative limit for posted f
 
 const MAX_KEEP_TIME = ONE_WEEK_MS
 
+const TMP_DIR = './tmp-storage/'
+
 const upload = multer({
-  dest: './tmp-storage/',
+  dest: TMP_DIR,
   limits: {
     fieldNameSize: 100,
     fieldSize: 100 * ONE_MB,
@@ -259,7 +261,7 @@ app.post('/api/file/encrypted', encryptedFileJsonParser, (req, res) => {
         buffer.length <= MAX_FILE_SIZE &&
         checkFilesLength(buffer.length)
       ) {
-        const path = `/tmp/${uuidv4()}`
+        const path = `${TMP_DIR}${uuidv4()}`
         fs.writeFileSync(path, buffer)
 
         const newFile: ServerFileType = createStoredFile({
