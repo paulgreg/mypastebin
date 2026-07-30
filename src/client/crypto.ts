@@ -4,9 +4,19 @@ const decoder = new TextDecoder('utf-8')
 const PBKDF2_ITERATIONS = 1_000_000
 
 const AES_KEY_BIT_LENGTH = 256
+const STRING_CONVERSION_CHUNK_SIZE = 8192
 
-export const arrayBufferToString = (buf: ArrayBuffer) =>
-  String.fromCharCode.apply(null, Array.from(new Uint8Array(buf)))
+export const arrayBufferToString = (buf: ArrayBuffer) => {
+  const bytes = new Uint8Array(buf)
+  let str = ''
+
+  for (let i = 0; i < bytes.length; i += STRING_CONVERSION_CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, i + STRING_CONVERSION_CHUNK_SIZE)
+    str += String.fromCharCode(...chunk)
+  }
+
+  return str
+}
 
 export const arrayBufferToBase64 = (buf: ArrayBuffer) => {
   const str = arrayBufferToString(buf)
