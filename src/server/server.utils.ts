@@ -15,9 +15,6 @@ interface HasId {
 
 export const findItem = <T extends HasId>(arr: Array<T>, idToFind: string) =>
   arr.find(({ id }) => id === idToFind)
-interface HasId {
-  id: string
-}
 
 export const filterById = <T extends HasId>(
   arr: Array<T>,

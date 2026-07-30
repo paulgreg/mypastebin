@@ -50,6 +50,34 @@ const getKeyFromPassword = (password: string, salt: Uint8Array) =>
       )
     )
 
+const encryptRaw = (
+  key: CryptoKey,
+  iv: Uint8Array,
+  inputToEncrypt: BufferSource
+) =>
+  crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv,
+    },
+    key,
+    inputToEncrypt
+  )
+
+const decryptRaw = (
+  key: CryptoKey,
+  iv: Uint8Array,
+  encryptedData: BufferSource
+) =>
+  crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv,
+    },
+    key,
+    encryptedData
+  )
+
 export const encrypt = (password: string, msg: string) => {
   const salt = getRandomValues()
   const iv = getRandomValues() // always generate a new initialization vector
@@ -57,14 +85,7 @@ export const encrypt = (password: string, msg: string) => {
   return getKeyFromPassword(password, salt)
     .then((key) => {
       const inputToEncrypt = encoder.encode(msg)
-      return crypto.subtle.encrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-        },
-        key,
-        inputToEncrypt
-      )
+      return encryptRaw(key, iv, inputToEncrypt)
     })
     .then((encryptedBuffer) => {
       return {
@@ -84,13 +105,7 @@ export const decrypt = (
   const salt = base64toArrayBuffer(saltInBase64)
   const iv = base64toArrayBuffer(ivInBase64)
 
-  return getKeyFromPassword(password, salt).then((key) =>
-    crypto.subtle
-      .decrypt(
-        { name: 'AES-GCM', iv },
-        key,
-        base64toArrayBuffer(encryptedDataInBase64)
-      )
-      .then((result) => decoder.decode(new Uint8Array(result)))
-  )
+  return getKeyFromPassword(password, salt)
+    .then((key) => decryptRaw(key, iv, base64toArrayBuffer(encryptedDataInBase64)))
+    .then((result) => decoder.decode(new Uint8Array(result)))
 }

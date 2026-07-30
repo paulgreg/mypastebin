@@ -1,4 +1,4 @@
-import { padZero, formatSize, KB, MB, formatDate } from './utils'
+import { padZero, formatSize, KB, MB, formatDate } from './client.utils'
 
 describe('utils', () => {
   describe('padZero', () => {
