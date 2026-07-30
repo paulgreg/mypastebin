@@ -5,6 +5,8 @@ import {
   arrayBufferToBase64,
   encrypt,
   decrypt,
+  encryptBuffer,
+  decryptBuffer,
   getRandomValues,
 } from './crypto'
 
@@ -56,6 +58,41 @@ describe('crypto', () => {
       expect.assertions(1)
       return encrypt(password, originalMessage)
         .then((msg) => decrypt('otherPassword', msg.salt, msg.iv, msg.content))
+        .catch((e) => {
+          expect(e).toBeDefined()
+        })
+    })
+
+    test('should encrypt and decrypt binary content with same password', () => {
+      const originalBuffer = new Uint8Array([0, 255, 123, 56, 8, 19, 200]).buffer
+      return encryptBuffer(password, originalBuffer)
+        .then((msg) =>
+          decryptBuffer(
+            password,
+            msg.salt,
+            msg.iv,
+            base64toArrayBuffer(msg.content)
+          )
+        )
+        .then((decryptedBuffer) => {
+          expect(new Uint8Array(decryptedBuffer)).toEqual(
+            new Uint8Array(originalBuffer)
+          )
+        })
+    })
+
+    test('should return an error for binary content if incorrect password', () => {
+      expect.assertions(1)
+      const originalBuffer = new Uint8Array([1, 2, 3]).buffer
+      return encryptBuffer(password, originalBuffer)
+        .then((msg) =>
+          decryptBuffer(
+            'otherPassword',
+            msg.salt,
+            msg.iv,
+            base64toArrayBuffer(msg.content)
+          )
+        )
         .catch((e) => {
           expect(e).toBeDefined()
         })

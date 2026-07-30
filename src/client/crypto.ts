@@ -7,7 +7,6 @@ const AES_KEY_BIT_LENGTH = 256
 
 export const arrayBufferToString = (buf: ArrayBuffer) =>
   String.fromCharCode.apply(null, Array.from(new Uint8Array(buf)))
-//  String.fromCharCode.apply(null, new Uint8Array(buf))
 
 export const arrayBufferToBase64 = (buf: ArrayBuffer) => {
   const str = arrayBufferToString(buf)
@@ -96,6 +95,19 @@ export const encrypt = (password: string, msg: string) => {
     })
 }
 
+export const encryptBuffer = (password: string, msg: ArrayBuffer) => {
+  const salt = getRandomValues()
+  const iv = getRandomValues()
+
+  return getKeyFromPassword(password, salt)
+    .then((key) => encryptRaw(key, iv, msg))
+    .then((encryptedBuffer) => ({
+      content: arrayBufferToBase64(encryptedBuffer),
+      salt: arrayBufferToBase64(salt),
+      iv: arrayBufferToBase64(iv),
+    }))
+}
+
 export const decrypt = (
   password: string,
   saltInBase64: string,
@@ -106,6 +118,22 @@ export const decrypt = (
   const iv = base64toArrayBuffer(ivInBase64)
 
   return getKeyFromPassword(password, salt)
-    .then((key) => decryptRaw(key, iv, base64toArrayBuffer(encryptedDataInBase64)))
+    .then((key) =>
+      decryptRaw(key, iv, base64toArrayBuffer(encryptedDataInBase64))
+    )
     .then((result) => decoder.decode(new Uint8Array(result)))
+}
+
+export const decryptBuffer = (
+  password: string,
+  saltInBase64: string,
+  ivInBase64: string,
+  encryptedData: ArrayBuffer
+) => {
+  const salt = base64toArrayBuffer(saltInBase64)
+  const iv = base64toArrayBuffer(ivInBase64)
+
+  return getKeyFromPassword(password, salt).then((key) =>
+    decryptRaw(key, iv, encryptedData)
+  )
 }

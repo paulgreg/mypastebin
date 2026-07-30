@@ -1,10 +1,12 @@
 import {
   ContentTypeEnum,
   ClientFilesType,
+  ClientFileType,
   DatasType,
 } from '../PasteBinTypes.js'
-import { decrypt, encrypt } from './crypto.js'
+import { decrypt, decryptBuffer, encrypt, encryptBuffer } from './crypto.js'
 import { formatSize, formatDate } from './client.utils.js'
+import { MAX_FILE_SIZE } from '../constants.js'
 
 const origin = import.meta.env.DEV ? 'http://localhost:6080' : '.'
 
@@ -50,7 +52,7 @@ typeSelect.addEventListener('change', (e: Event) => {
   if (target.value === TYPE_FILE) {
     inputFile.style.display = 'inline-block'
     textarea.style.display = 'none'
-    passwordContainer.style.display = 'none'
+    passwordContainer.style.display = 'flex'
   } else {
     inputFile.style.display = 'none'
     textarea.style.display = 'inline-block'
@@ -64,6 +66,22 @@ const displayMessage = (msg: string, error: boolean) => {
   dialogMessage.innerText = msg
   dialogMessage.classList[error ? 'add' : 'remove']('error')
   dialog.showModal()
+}
+
+const downloadAsFile = (
+  content: ArrayBuffer,
+  fileName: string,
+  mimeType: string
+) => {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 const decryptData = (id: string, salt: string, iv: string) => (e: Event) => {
@@ -145,6 +163,95 @@ const fetchData = () =>
       pastedData.appendChild(fragment)
     })
 
+const postFile = (file: File, keep: number) => {
+  if (file.size > MAX_FILE_SIZE) {
+    displayMessage('File too large, max 250 Mb', true)
+    return
+  }
+
+  submitButton.disabled = true
+
+  Promise.resolve()
+    .then(() => {
+      if (passwordInput?.value.length === 0) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('keep', String(keep))
+        return fetch(`${origin}/api/file`, {
+          method: 'POST',
+          body: formData,
+        })
+      }
+
+      return file
+        .arrayBuffer()
+        .then((content) => encryptBuffer(passwordInput.value, content))
+        .then(({ content, iv, salt }) =>
+          fetch(`${origin}/api/file/encrypted`, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              originalname: file.name,
+              mimetype: file.type || 'application/octet-stream',
+              content,
+              keep,
+              iv,
+              salt,
+            }),
+          })
+        )
+    })
+    .then((response) => {
+      submitButton.disabled = false
+      if (response.status === 200) {
+        inputFile.value = ''
+        passwordInput.value = ''
+        fetchFiles()
+        displayMessage('file posted', false)
+      } else {
+        throw new Error(`error: ${response.status}`)
+      }
+    })
+    .catch((e) => {
+      submitButton.disabled = false
+      console.error(e)
+      displayMessage('Error while posting file', true)
+    })
+}
+
+const decryptAndDownloadFile = (file: ClientFileType) => (e: Event) => {
+  e.preventDefault()
+  e.stopPropagation()
+  const userPassword = prompt('password ?')
+  if (!userPassword || !file.iv || !file.salt) return
+
+  fetch(`${origin}/api/file/${file.id}`)
+    .then((response) => {
+      if (response.status !== 200) {
+        throw new Error(`error: ${response.status}`)
+      }
+      return response.arrayBuffer()
+    })
+    .then((encryptedContent) =>
+      decryptBuffer(
+        userPassword,
+        file.salt ?? '',
+        file.iv ?? '',
+        encryptedContent
+      )
+    )
+    .then((decryptedContent) => {
+      downloadAsFile(decryptedContent, file.originalname, file.mimetype)
+    })
+    .catch((e) => {
+      console.error(e)
+      displayMessage('decryption failed, bad password ?', true)
+    })
+}
+
 const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
   e.stopPropagation()
   e.preventDefault()
@@ -155,31 +262,13 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
       return
     }
 
-    const files = inputFile?.files ?? []
-    const formData = new FormData()
-    formData.append('file', files[0])
-    formData.append(
-      'keep',
-      String(parseInt(keepSelect?.value ?? '0', 10) * 1000)
-    )
+    const file = inputFile?.files?.[0]
+    if (!file) {
+      displayMessage('No file to post', true)
+      return
+    }
 
-    fetch(`${origin}/api/file`, {
-      method: 'POST',
-      body: formData,
-    })
-      .then((response) => {
-        if (response.status === 200) {
-          inputFile.value = ''
-          fetchFiles()
-          displayMessage('file posted', false)
-        } else {
-          throw new Error(`error: ${response.status}`)
-        }
-      })
-      .catch((e) => {
-        console.error(e)
-        displayMessage('Error while posting file', true)
-      })
+    postFile(file, Number.parseInt(keepSelect?.value ?? '0', 10) * 1000)
   } else if (
     typeSelect?.value === TYPE_TEXT ||
     typeSelect?.value === TYPE_CODE
@@ -209,7 +298,7 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
           },
           body: JSON.stringify({
             content,
-            keep: parseInt(keepSelect.value, 10) * 1000,
+            keep: Number.parseInt(keepSelect.value, 10) * 1000,
             pre: typeSelect.value === TYPE_CODE,
             iv,
             salt,
@@ -237,7 +326,7 @@ const keepDataOrFile = (type: ContentTypeEnum, id: string) => (e: Event) => {
   e.stopPropagation()
   e.preventDefault()
   const target = e.target as HTMLAnchorElement
-  const time = parseInt(target.dataset.time ?? '0', 10) * 1000
+  const time = Number.parseInt(target.dataset.time ?? '0', 10) * 1000
   fetch(`${origin}/api/${type}/keep/${id}?time=${time}`, {
     method: 'GET',
   })
@@ -283,10 +372,17 @@ const fetchFiles = () =>
       const fragment = document.createElement('ul')
       data.forEach((file) => {
         const child = document.importNode(templatePastedFile.content, true)
-        const a = child.querySelector('a')
+        const a = child.querySelector('a.pastedFile') as HTMLAnchorElement
         if (!a) throw new Error('Missing a')
-        a.textContent = file.originalname
-        a.setAttribute('href', `${origin}/api/file/${file.id}`)
+        const encrypted = !!file.iv && !!file.salt
+        a.textContent = `${file.originalname}${encrypted ? ' (encrypted)' : ''}`
+        if (encrypted) {
+          a.setAttribute('href', '#')
+          a.removeAttribute('target')
+          a.addEventListener('click', decryptAndDownloadFile(file), false)
+        } else {
+          a.setAttribute('href', `${origin}/api/file/${file.id}`)
+        }
         const size = child.querySelector('.size')
         if (!size) return
         size.textContent = formatSize(file.size)

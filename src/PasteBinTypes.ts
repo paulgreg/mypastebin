@@ -20,6 +20,8 @@ export type ClientFileType = {
   mimetype: string
   size: number
   until: number
+  iv?: string
+  salt?: string
 }
 export type ClientFilesType = Array<ClientFileType>
 

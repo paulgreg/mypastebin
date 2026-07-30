@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'node:fs'
 import express from 'express'
 import multer from 'multer'
 import {
@@ -17,8 +17,7 @@ import {
   ONE_MINUTE_MS,
   ONE_WEEK_MS,
 } from './server.utils'
-
-const ONE_MB = 1_048_576
+import { MAX_FILE_SIZE, ONE_MB } from '../constants'
 
 const CUMULATIVE_MAX_DATA_LENGTH = ONE_MB // cumulative limit for posted data
 const CUMULATIVE_MAX_FILES_SIZE = 1000 * ONE_MB // culumative limit for posted files
@@ -30,16 +29,23 @@ const upload = multer({
   limits: {
     fieldNameSize: 100,
     fieldSize: 100 * ONE_MB,
+    fileSize: MAX_FILE_SIZE,
   },
 })
 
 const defaultPort = 6080
 
 const app = express()
+app.disable('x-powered-by')
 
 const jsonParser = express.json({
   strict: true,
   limit: '100kb',
+})
+
+const encryptedFileJsonParser = express.json({
+  strict: true,
+  limit: '350mb',
 })
 
 let data: DatasType = []
@@ -88,6 +94,25 @@ const removeFile = (file: ServerFileType | Express.Multer.File) => {
     throw new Error('file not found')
   }
 }
+
+const createStoredFile = (file: {
+  originalname: string
+  mimetype: string
+  path: string
+  size: number
+  keep: number
+  iv?: string
+  salt?: string
+}) => ({
+  id: uuidv4(),
+  originalname: file.originalname,
+  mimetype: file.mimetype,
+  path: file.path,
+  size: file.size,
+  until: Date.now() + file.keep,
+  iv: file.iv,
+  salt: file.salt,
+})
 
 const periodicFilterFiles = () => {
   const nbBefore = files.length
@@ -190,20 +215,19 @@ app.post('/api/file', upload.single('file'), (req, res) => {
     file.mimetype &&
     file.path &&
     file.size &&
+    file.size <= MAX_FILE_SIZE &&
     checkFilesLength(file.size) &&
     keep > 0 &&
     keep <= MAX_KEEP_TIME
   ) {
     const { originalname, mimetype, path, size } = file
-
-    const newFile: ServerFileType = {
-      id: uuidv4(),
+    const newFile: ServerFileType = createStoredFile({
       originalname: Buffer.from(originalname, 'latin1').toString('utf8'),
       mimetype,
       path,
       size,
-      until: Date.now() + keep,
-    }
+      keep,
+    })
     console.log('push new file', JSON.stringify(newFile))
     files.push(newFile)
     res.sendStatus(200)
@@ -214,14 +238,66 @@ app.post('/api/file', upload.single('file'), (req, res) => {
   }
 })
 
+app.post('/api/file/encrypted', encryptedFileJsonParser, (req, res) => {
+  const body = req.body
+  const keep = body?.keep
+
+  if (
+    typeof body?.originalname === 'string' &&
+    typeof body?.mimetype === 'string' &&
+    typeof body?.content === 'string' &&
+    typeof body?.iv === 'string' &&
+    typeof body?.salt === 'string' &&
+    typeof keep === 'number' &&
+    keep > 0 &&
+    keep <= MAX_KEEP_TIME
+  ) {
+    try {
+      const buffer = Buffer.from(body.content, 'base64')
+      if (
+        buffer.length > 0 &&
+        buffer.length <= MAX_FILE_SIZE &&
+        checkFilesLength(buffer.length)
+      ) {
+        const path = `/tmp/${uuidv4()}`
+        fs.writeFileSync(path, buffer)
+
+        const newFile: ServerFileType = createStoredFile({
+          originalname: body.originalname,
+          mimetype: body.mimetype,
+          path,
+          size: buffer.length,
+          keep,
+          iv: body.iv,
+          salt: body.salt,
+        })
+        console.log('push new encrypted file', JSON.stringify(newFile))
+        files.push(newFile)
+        res.sendStatus(200)
+      } else {
+        console.log('rejected encrypted file: invalid size', buffer.length)
+        res.sendStatus(400)
+      }
+    } catch (e) {
+      console.error('error while posting encrypted file', e)
+      res.sendStatus(400)
+    }
+  } else {
+    console.log('rejected encrypted file body:', JSON.stringify(body))
+    res.sendStatus(400)
+  }
+})
+
 app.get('/api/files', (_req, res) => {
   const availableFiles: ClientFilesType = files.map(
-    ({ id, originalname, mimetype, size, until }) => ({
+    ({ id, originalname, mimetype, size, until, iv, salt }) => ({
       id,
       originalname,
       mimetype,
       size,
       until,
+      iv,
+      salt,
     })
   )
   res.json(availableFiles)

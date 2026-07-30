@@ -13,7 +13,7 @@ export const formatDate = (ms: number) => {
   const isTomorrow = d.getDate() == tomorrow.getDate()
   if (isTomorrow) return `${dateStr}, tomorrow`
 
-  const diffInDays = Math.floor((ms - today.getTime()) / 86400_000)
+  const diffInDays = Math.floor((ms - today.getTime()) / 86_400_000)
   return `${dateStr}, in ${diffInDays} days`
 }
 
