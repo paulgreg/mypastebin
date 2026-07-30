@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import express from 'express'
 import multer from 'multer'
 import {
@@ -314,7 +315,7 @@ app.get('/api/file/:id', (req, res) => {
       'content-disposition',
       `inline; filename="${encodeFileName(file.originalname)}"`
     )
-    res.sendFile(file.path)
+    res.sendFile(path.resolve(file.path))
   } else {
     res.sendStatus(400)
   }
