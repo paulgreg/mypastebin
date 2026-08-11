@@ -10,7 +10,8 @@
     "build:server": "NODE_ENV=production vite build --outDir dist/server --ssr ./src/server/index.ts",
     "build:client": "NODE_ENV=production vite build --outDir dist/client",
     "start": "node dist/server/index.mjs",
-    "test": "vitest"
+    "test": "vitest",
+    "check": "tsc --noEmit"
   },
   "author": "Grégory PAUL",
   "license": "GPL-3.0-or-later",
