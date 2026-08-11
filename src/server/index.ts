@@ -2,30 +2,32 @@ import fs from 'node:fs'
 import path from 'node:path'
 import express from 'express'
 import multer from 'multer'
-import {
-  ClientFilesType,
-  DataType,
-  DatasType,
-  ServerFileType,
-  ServerFilesType,
-} from '../PasteBinTypes'
+import { ClientFilesType, DataType, ServerFileType } from '../PasteBinTypes'
 import { v4 as uuidv4 } from 'uuid'
-import {
-  encodeFileName,
-  filterById,
-  findItem,
-  incrementUntilById,
-  ONE_MINUTE_MS,
-  ONE_WEEK_MS,
-} from './server.utils'
+import { encodeFileName, ONE_MINUTE_MS, ONE_WEEK_MS } from './server.utils'
 import { MAX_FILE_SIZE, ONE_MB } from '../constants'
+import {
+  TMP_DIR,
+  deleteExpiredFiles,
+  deleteExpiredPastes,
+  deleteFile,
+  deletePaste,
+  getFileById,
+  getFiles,
+  getFilesTotalSize,
+  getPasteById,
+  getPastes,
+  getPastesContentLength,
+  insertFile,
+  insertPaste,
+  updateFileUntil,
+  updatePasteUntil,
+} from './db/database'
 
 const CUMULATIVE_MAX_DATA_LENGTH = ONE_MB // cumulative limit for posted data
 const CUMULATIVE_MAX_FILES_SIZE = 1000 * ONE_MB // culumative limit for posted files
 
 const MAX_KEEP_TIME = ONE_WEEK_MS
-
-const TMP_DIR = './tmp-storage/'
 
 const upload = multer({
   dest: TMP_DIR,
@@ -51,9 +53,6 @@ const encryptedFileJsonParser = express.json({
   limit: '350mb',
 })
 
-let data: DatasType = []
-let files: ServerFilesType = []
-
 // handling CORS for DEV
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
@@ -70,31 +69,13 @@ if (process.env.NODE_ENV !== 'production') {
 }
 // End CORS for DEV
 
-app.listen(process.env.PORT ?? defaultPort, () => {
-  console.log(`Paste app listening on port ${defaultPort}`)
-})
-
-// Periodic cleanup
-const periodicFilterData = () => {
-  const nbBefore = data.length
-  data = data.filter((item) => item.until >= Date.now())
-  const nbAfter = data.length
-  if (nbAfter !== nbBefore) {
-    console.log(new Date(), 'periodicFilterData: ', nbBefore, ' -> ', nbAfter)
-  }
-  setTimeout(periodicFilterData, ONE_MINUTE_MS)
-}
-periodicFilterData()
-
-const removeFile = (file: ServerFileType | Express.Multer.File) => {
-  if (fs.existsSync(file.path)) {
-    console.log(new Date(), 'removing file', file)
-    fs.unlinkSync(file.path)
-    files = files.filter((currentFile) => currentFile.path !== file.path)
-    console.log(new Date(), 'file removed', file.path)
+const removeFileByPath = (filePath: string) => {
+  if (fs.existsSync(filePath)) {
+    console.log(new Date(), 'removing file', filePath)
+    fs.unlinkSync(filePath)
+    console.log(new Date(), 'file removed', filePath)
   } else {
-    console.error(new Date(), 'file not here', file)
-    throw new Error('file not found')
+    console.log(new Date(), 'file already gone', filePath)
   }
 }
 
@@ -117,32 +98,80 @@ const createStoredFile = (file: {
   salt: file.salt,
 })
 
-const periodicFilterFiles = () => {
-  const nbBefore = files.length
-  files
-    .filter((file) => file.until < Date.now())
-    .forEach((file) => {
-      try {
-        removeFile(file)
-      } catch (e) {
-        console.error('error while removing file', file, e)
-      }
-    })
-
-  const nbAfter = files.length
-  if (nbAfter !== nbBefore) {
-    console.log(new Date(), 'periodicFilterFiles:', nbBefore, ' -> ', nbAfter)
+const cleanupOnStartup = () => {
+  const now = Date.now()
+  const deletedDataCount = deleteExpiredPastes(now)
+  if (deletedDataCount > 0) {
+    console.log(new Date(), 'startup data cleanup:', deletedDataCount)
   }
+
+  const expiredFilePaths = deleteExpiredFiles(now)
+  for (const filePath of expiredFilePaths) {
+    try {
+      removeFileByPath(filePath)
+    } catch (e) {
+      console.error('error while removing expired file at startup', filePath, e)
+    }
+  }
+
+  const knownPaths = new Set(getFiles().map((file) => path.resolve(file.path)))
+  for (const entry of fs.readdirSync(TMP_DIR, { withFileTypes: true })) {
+    if (!entry.isFile()) continue
+    const filePath = path.join(TMP_DIR, entry.name)
+    const absolutePath = path.resolve(filePath)
+    if (!knownPaths.has(absolutePath)) {
+      try {
+        console.log(new Date(), 'removing orphan file', filePath)
+        fs.unlinkSync(filePath)
+      } catch (e) {
+        console.error('error while removing orphan file', filePath, e)
+      }
+    }
+  }
+}
+
+const periodicFilterFiles = () => {
+  const expiredFilePaths = deleteExpiredFiles(Date.now())
+  if (expiredFilePaths.length > 0) {
+    console.log(new Date(), 'periodicFilterFiles:', expiredFilePaths.length)
+  }
+  for (const filePath of expiredFilePaths) {
+    try {
+      removeFileByPath(filePath)
+    } catch (e) {
+      console.error('error while removing file', filePath, e)
+    }
+  }
+
   setTimeout(periodicFilterFiles, ONE_MINUTE_MS)
 }
+
+const periodicFilterData = () => {
+  const deletedCount = deleteExpiredPastes(Date.now())
+  if (deletedCount > 0) {
+    console.log(new Date(), 'periodicFilterData:', deletedCount)
+  }
+  setTimeout(periodicFilterData, ONE_MINUTE_MS)
+}
+
+cleanupOnStartup()
+periodicFilterData()
 periodicFilterFiles()
+
+app.listen(process.env.PORT ?? defaultPort, () => {
+  console.log(`Paste app listening on port ${defaultPort}`)
+})
+
+const parseKeepTime = (value: unknown) => {
+  if (typeof value !== 'string' || !/^-?\d+$/.test(value)) {
+    return 0
+  }
+  return parseInt(value, 10)
+}
 
 // Text data
 const checkDataLength = (newContentLength: number) => {
-  const dataLength = data.reduce(
-    (acc, current) => acc + current.content.length,
-    0
-  )
+  const dataLength = getPastesContentLength()
   const newDataLength = dataLength + newContentLength
   console.log(
     'new data length',
@@ -174,7 +203,7 @@ app.post('/api/data', jsonParser, (req, res) => {
       salt: body.salt,
     }
     console.log('pushing new message', msg.content.length, msg.until)
-    data.push(msg)
+    insertPaste(msg)
     res.sendStatus(200)
   } else {
     console.log('rejected msg:', JSON.stringify(body))
@@ -183,14 +212,12 @@ app.post('/api/data', jsonParser, (req, res) => {
 })
 
 app.get('/api/data', (_req, res) => {
-  res.json(data)
+  res.json(getPastes())
 })
 
 app.delete('/api/data/:id', (req, res) => {
   console.log(new Date(), 'deleting data', req.params.id)
-  const item = findItem(data, req.params.id)
-  if (item) {
-    data = filterById(data, req.params.id)
+  if (deletePaste(req.params.id)) {
     res.sendStatus(200)
   } else {
     res.sendStatus(400)
@@ -199,7 +226,7 @@ app.delete('/api/data/:id', (req, res) => {
 
 // Files
 const checkFilesLength = (newFileSize: number) => {
-  const fileLength = files.reduce((acc, current) => acc + current.size, 0)
+  const fileLength = getFilesTotalSize()
   const newFilesLength = fileLength + newFileSize
   console.log(
     'new file length',
@@ -232,11 +259,11 @@ app.post('/api/file', upload.single('file'), (req, res) => {
       keep,
     })
     console.log('push new file', JSON.stringify(newFile))
-    files.push(newFile)
+    insertFile(newFile)
     res.sendStatus(200)
   } else {
     console.log('rejected file:', JSON.stringify(file))
-    if (file) removeFile(file)
+    if (file) removeFileByPath(file.path)
     res.sendStatus(400)
   }
 })
@@ -262,20 +289,20 @@ app.post('/api/file/encrypted', encryptedFileJsonParser, (req, res) => {
         buffer.length <= MAX_FILE_SIZE &&
         checkFilesLength(buffer.length)
       ) {
-        const path = `${TMP_DIR}${uuidv4()}`
-        fs.writeFileSync(path, buffer)
+        const storedPath = path.join(TMP_DIR, uuidv4())
+        fs.writeFileSync(storedPath, buffer)
 
         const newFile: ServerFileType = createStoredFile({
           originalname: body.originalname,
           mimetype: body.mimetype,
-          path,
+          path: storedPath,
           size: buffer.length,
           keep,
           iv: body.iv,
           salt: body.salt,
         })
         console.log('push new encrypted file', JSON.stringify(newFile))
-        files.push(newFile)
+        insertFile(newFile)
         res.sendStatus(200)
       } else {
         console.log('rejected encrypted file: invalid size', buffer.length)
@@ -292,7 +319,7 @@ app.post('/api/file/encrypted', encryptedFileJsonParser, (req, res) => {
 })
 
 app.get('/api/files', (_req, res) => {
-  const availableFiles: ClientFilesType = files.map(
+  const availableFiles: ClientFilesType = getFiles().map(
     ({ id, originalname, mimetype, size, until, iv, salt }) => ({
       id,
       originalname,
@@ -308,7 +335,7 @@ app.get('/api/files', (_req, res) => {
 
 app.get('/api/file/:id', (req, res) => {
   console.log(new Date(), 'requesting', req.params.id)
-  const file = findItem(files, req.params.id)
+  const file = getFileById(req.params.id)
   if (file && file.until > Date.now()) {
     res.setHeader('content-type', file.mimetype)
     res.setHeader(
@@ -323,13 +350,13 @@ app.get('/api/file/:id', (req, res) => {
 
 app.delete('/api/file/:id', (req, res) => {
   console.log(new Date(), 'deleting file', req.params.id)
-  const file = findItem(files, req.params.id)
-  if (file) {
+  const deletedFilePath = deleteFile(req.params.id)
+  if (deletedFilePath) {
     try {
-      removeFile(file)
+      removeFileByPath(deletedFilePath)
       res.sendStatus(200)
     } catch (e) {
-      console.error('error while removing file', file, e)
+      console.error('error while removing file', deletedFilePath, e)
       res.sendStatus(400)
     }
   } else {
@@ -339,17 +366,22 @@ app.delete('/api/file/:id', (req, res) => {
 
 app.get('/api/data/keep/:id/', (req, res) => {
   console.log(new Date(), 'keep data', req.params.id)
-  data = incrementUntilById(data, req.params.id, MAX_KEEP_TIME, req.query.time)
+  const dataItem = getPasteById(req.params.id)
+  if (dataItem) {
+    const time = parseKeepTime(req.query.time)
+    const until = Math.min(dataItem.until + time, Date.now() + MAX_KEEP_TIME)
+    updatePasteUntil(req.params.id, until)
+  }
   res.sendStatus(200)
 })
 
 app.get('/api/file/keep/:id/', (req, res) => {
   console.log(new Date(), 'keep file', req.params.id)
-  files = incrementUntilById(
-    files,
-    req.params.id,
-    MAX_KEEP_TIME,
-    req.query.time
-  )
+  const fileItem = getFileById(req.params.id)
+  if (fileItem) {
+    const time = parseKeepTime(req.query.time)
+    const until = Math.min(fileItem.until + time, Date.now() + MAX_KEEP_TIME)
+    updateFileUntil(req.params.id, until)
+  }
   res.sendStatus(200)
 })

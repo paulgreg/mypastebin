@@ -7,7 +7,7 @@ export type DataType = {
   id: string
   content: string
   until: number
-  pre?: string
+  pre?: boolean
   iv?: string
   salt?: string
 }
