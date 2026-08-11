@@ -6,8 +6,16 @@ const PBKDF2_ITERATIONS = 1_000_000
 const AES_KEY_BIT_LENGTH = 256
 const STRING_CONVERSION_CHUNK_SIZE = 8192
 
-export const arrayBufferToString = (buf: ArrayBuffer) => {
-  const bytes = new Uint8Array(buf)
+const bufferSourceToUint8Array = (input: BufferSource) => {
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input)
+  }
+
+  return new Uint8Array(input.buffer, input.byteOffset, input.byteLength)
+}
+
+export const arrayBufferToString = (buf: BufferSource) => {
+  const bytes = bufferSourceToUint8Array(buf)
   let str = ''
 
   for (let i = 0; i < bytes.length; i += STRING_CONVERSION_CHUNK_SIZE) {
@@ -18,7 +26,7 @@ export const arrayBufferToString = (buf: ArrayBuffer) => {
   return str
 }
 
-export const arrayBufferToBase64 = (buf: ArrayBuffer) => {
+export const arrayBufferToBase64 = (buf: BufferSource) => {
   const str = arrayBufferToString(buf)
   return window.btoa(str)
 }
@@ -29,7 +37,7 @@ export const stringToArrayBuffer = (str: string) => {
   for (let i = 0, strLen = str.length; i < strLen; i++) {
     bufView[i] = str.charCodeAt(i)
   }
-  return new Uint8Array(buf)
+  return buf
 }
 
 export const base64toArrayBuffer = (str: string) =>
@@ -38,7 +46,7 @@ export const base64toArrayBuffer = (str: string) =>
 export const getRandomValues = (size = 16) =>
   crypto.getRandomValues(new Uint8Array(size))
 
-const getKeyFromPassword = (password: string, salt: Uint8Array) =>
+const getKeyFromPassword = (password: string, salt: BufferSource) =>
   window.crypto.subtle
     .importKey('raw', encoder.encode(password), { name: 'PBKDF2' }, false, [
       'deriveBits',
@@ -61,7 +69,7 @@ const getKeyFromPassword = (password: string, salt: Uint8Array) =>
 
 const encryptRaw = (
   key: CryptoKey,
-  iv: Uint8Array,
+  iv: BufferSource,
   inputToEncrypt: BufferSource
 ) =>
   crypto.subtle.encrypt(
@@ -75,7 +83,7 @@ const encryptRaw = (
 
 const decryptRaw = (
   key: CryptoKey,
-  iv: Uint8Array,
+  iv: BufferSource,
   encryptedData: BufferSource
 ) =>
   crypto.subtle.decrypt(
