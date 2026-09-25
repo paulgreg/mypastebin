@@ -80,6 +80,7 @@ const removeFileByPath = (filePath: string) => {
 }
 
 const createStoredFile = (file: {
+  title?: string
   originalname: string
   mimetype: string
   path: string
@@ -89,6 +90,7 @@ const createStoredFile = (file: {
   salt?: string
 }) => ({
   id: uuidv4(),
+  title: file.title,
   originalname: file.originalname,
   mimetype: file.mimetype,
   path: file.path,
@@ -169,6 +171,14 @@ const parseKeepTime = (value: unknown) => {
   return parseInt(value, 10)
 }
 
+const parseOptionalTitle = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+  const trimmedValue = value.trim()
+  return trimmedValue.length > 0 ? trimmedValue : undefined
+}
+
 // Text data
 const checkDataLength = (newContentLength: number) => {
   const dataLength = getPastesContentLength()
@@ -184,10 +194,12 @@ const checkDataLength = (newContentLength: number) => {
 
 app.post('/api/data', jsonParser, (req, res) => {
   const body = req.body
+  const title = parseOptionalTitle(body.title)
   if (
     typeof body.content === 'string' &&
     body.content.length > 0 &&
     checkDataLength(body.content?.length) &&
+    (body.title === undefined || typeof body.title === 'string') &&
     typeof body.keep === 'number' &&
     body.keep <= MAX_KEEP_TIME &&
     typeof body.pre === 'boolean' &&
@@ -196,6 +208,7 @@ app.post('/api/data', jsonParser, (req, res) => {
   ) {
     const msg: DataType = {
       id: uuidv4(),
+      title,
       content: body.content,
       until: Date.now() + body.keep,
       pre: body.pre,
@@ -240,6 +253,7 @@ const checkFilesLength = (newFileSize: number) => {
 app.post('/api/file', upload.single('file'), (req, res) => {
   const file = req.file
   const keep = parseInt(req.body?.keep, 10)
+  const title = parseOptionalTitle(req.body?.title)
   if (
     file?.originalname &&
     file.mimetype &&
@@ -251,8 +265,10 @@ app.post('/api/file', upload.single('file'), (req, res) => {
     keep <= MAX_KEEP_TIME
   ) {
     const { originalname, mimetype, path, size } = file
+    const decodedOriginalName = Buffer.from(originalname, 'latin1').toString('utf8')
     const newFile: ServerFileType = createStoredFile({
-      originalname: Buffer.from(originalname, 'latin1').toString('utf8'),
+      title: title ?? decodedOriginalName,
+      originalname: decodedOriginalName,
       mimetype,
       path,
       size,
@@ -271,9 +287,11 @@ app.post('/api/file', upload.single('file'), (req, res) => {
 app.post('/api/file/encrypted', encryptedFileJsonParser, (req, res) => {
   const body = req.body
   const keep = body?.keep
+  const title = parseOptionalTitle(body?.title)
 
   if (
     typeof body?.originalname === 'string' &&
+    (body?.title === undefined || typeof body?.title === 'string') &&
     typeof body?.mimetype === 'string' &&
     typeof body?.content === 'string' &&
     typeof body?.iv === 'string' &&
@@ -293,6 +311,7 @@ app.post('/api/file/encrypted', encryptedFileJsonParser, (req, res) => {
         fs.writeFileSync(storedPath, buffer)
 
         const newFile: ServerFileType = createStoredFile({
+          title: title ?? body.originalname,
           originalname: body.originalname,
           mimetype: body.mimetype,
           path: storedPath,
@@ -320,8 +339,9 @@ app.post('/api/file/encrypted', encryptedFileJsonParser, (req, res) => {
 
 app.get('/api/files', (_req, res) => {
   const availableFiles: ClientFilesType = getFiles().map(
-    ({ id, originalname, mimetype, size, until, iv, salt }) => ({
+    ({ id, title, originalname, mimetype, size, until, iv, salt }) => ({
       id,
+      title,
       originalname,
       mimetype,
       size,

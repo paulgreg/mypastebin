@@ -16,6 +16,7 @@ const details = document.querySelector(
 ) as HTMLDetailsElement
 const textarea = document.querySelector('textarea') as HTMLTextAreaElement
 const inputFile = document.querySelector('input[type=file]') as HTMLInputElement
+const titleInput = document.querySelector('#title') as HTMLInputElement
 const passwordContainer = document.querySelector(
   '.passwordContainer'
 ) as HTMLDivElement
@@ -66,6 +67,23 @@ const displayMessage = (msg: string, error: boolean) => {
   dialogMessage.innerText = msg
   dialogMessage.classList[error ? 'add' : 'remove']('error')
   dialog.showModal()
+}
+
+const parseOptionalTitle = (value: string) => {
+  const trimmedValue = value.trim()
+  return trimmedValue.length > 0 ? trimmedValue : undefined
+}
+
+const setTemplateTitle = (element: ParentNode, title?: string) => {
+  const titleEl = element.querySelector('.title') as HTMLElement | null
+  if (!titleEl) return
+  if (title) {
+    titleEl.textContent = title
+    titleEl.style.removeProperty('display')
+  } else {
+    titleEl.textContent = ''
+    titleEl.style.display = 'none'
+  }
 }
 
 const downloadAsFile = (
@@ -121,6 +139,7 @@ const fetchData = () =>
       data.forEach((item) => {
         const template = item.pre ? templatePastedCode : templatePastedText
         const child = document.importNode(template.content, true)
+        setTemplateTitle(child, item.title)
         const article = child.querySelector('article')
         article?.setAttribute('id', item.id)
         if (item.iv && item.salt) {
@@ -163,7 +182,7 @@ const fetchData = () =>
       pastedData.appendChild(fragment)
     })
 
-const postFile = (file: File, keep: number) => {
+const postFile = (file: File, keep: number, title?: string) => {
   if (file.size > MAX_FILE_SIZE) {
     displayMessage('File too large, max 250 Mb', true)
     return
@@ -177,6 +196,9 @@ const postFile = (file: File, keep: number) => {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('keep', String(keep))
+        if (title) {
+          formData.append('title', title)
+        }
         return fetch(`${origin}/api/file`, {
           method: 'POST',
           body: formData,
@@ -197,6 +219,7 @@ const postFile = (file: File, keep: number) => {
               originalname: file.name,
               mimetype: file.type || 'application/octet-stream',
               content,
+              title,
               keep,
               iv,
               salt,
@@ -208,6 +231,7 @@ const postFile = (file: File, keep: number) => {
       submitButton.disabled = false
       if (response.status === 200) {
         inputFile.value = ''
+        titleInput.value = ''
         passwordInput.value = ''
         fetchFiles()
         displayMessage('file posted', false)
@@ -268,7 +292,8 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
       return
     }
 
-    postFile(file, Number.parseInt(keepSelect?.value ?? '0', 10) * 1000)
+    const title = parseOptionalTitle(titleInput.value) ?? file.name
+    postFile(file, Number.parseInt(keepSelect?.value ?? '0', 10) * 1000, title)
   } else if (
     typeSelect?.value === TYPE_TEXT ||
     typeSelect?.value === TYPE_CODE
@@ -297,6 +322,7 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            title: parseOptionalTitle(titleInput.value),
             content,
             keep: Number.parseInt(keepSelect.value, 10) * 1000,
             pre: typeSelect.value === TYPE_CODE,
@@ -308,6 +334,7 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
       .then((response) => {
         if (response.status === 200) {
           textarea.value = ''
+          titleInput.value = ''
           passwordInput.value = ''
           fetchData()
           displayMessage('data posted', false)
@@ -372,6 +399,7 @@ const fetchFiles = () =>
       const fragment = document.createElement('ul')
       data.forEach((file) => {
         const child = document.importNode(templatePastedFile.content, true)
+        setTemplateTitle(child, file.title ?? file.originalname)
         const a = child.querySelector('a.pastedFile') as HTMLAnchorElement
         if (!a) throw new Error('Missing a')
         const encrypted = !!file.iv && !!file.salt
@@ -425,6 +453,12 @@ textarea?.addEventListener(
 )
 
 form?.addEventListener('submit', postDataOrFile, false)
+
+inputFile?.addEventListener('change', () => {
+  const file = inputFile.files?.[0]
+  if (!file) return
+  titleInput.value = file.name
+})
 
 fetchData()
 fetchFiles()

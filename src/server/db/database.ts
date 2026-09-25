@@ -13,6 +13,7 @@ const db = new DatabaseSync(DB_PATH)
 db.exec(`
   CREATE TABLE IF NOT EXISTS pastes (
     id TEXT PRIMARY KEY,
+    title TEXT,
     content TEXT NOT NULL,
     until INTEGER NOT NULL,
     pre INTEGER,
@@ -22,6 +23,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS files (
     id TEXT PRIMARY KEY,
+    title TEXT,
     originalname TEXT NOT NULL,
     mimetype TEXT NOT NULL,
     path TEXT NOT NULL,
@@ -32,12 +34,29 @@ db.exec(`
   );
 `)
 
+const hasColumn = (tableName: 'pastes' | 'files', columnName: string) => {
+  const rows = db
+    .prepare(`PRAGMA table_info(${tableName})`)
+    .all() as Array<{ name: string }>
+  return rows.some((row) => row.name === columnName)
+}
+
+if (!hasColumn('pastes', 'title')) {
+  db.exec('ALTER TABLE pastes ADD COLUMN title TEXT')
+}
+
+if (!hasColumn('files', 'title')) {
+  db.exec('ALTER TABLE files ADD COLUMN title TEXT')
+}
+
 const insertPasteStmt = db.prepare(
-  'INSERT INTO pastes (id, content, until, pre, iv, salt) VALUES (?, ?, ?, ?, ?, ?)'
+  'INSERT INTO pastes (id, title, content, until, pre, iv, salt) VALUES (?, ?, ?, ?, ?, ?, ?)'
 )
-const getPastesStmt = db.prepare('SELECT id, content, until, pre, iv, salt FROM pastes')
+const getPastesStmt = db.prepare(
+  'SELECT id, title, content, until, pre, iv, salt FROM pastes'
+)
 const getPasteByIdStmt = db.prepare(
-  'SELECT id, content, until, pre, iv, salt FROM pastes WHERE id = ?'
+  'SELECT id, title, content, until, pre, iv, salt FROM pastes WHERE id = ?'
 )
 const deletePasteStmt = db.prepare('DELETE FROM pastes WHERE id = ?')
 const deleteExpiredPastesStmt = db.prepare('DELETE FROM pastes WHERE until < ?')
@@ -47,13 +66,13 @@ const getPastesContentLengthStmt = db.prepare(
 const updatePasteUntilStmt = db.prepare('UPDATE pastes SET until = ? WHERE id = ?')
 
 const insertFileStmt = db.prepare(
-  'INSERT INTO files (id, originalname, mimetype, path, size, until, iv, salt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  'INSERT INTO files (id, title, originalname, mimetype, path, size, until, iv, salt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
 )
 const getFilesStmt = db.prepare(
-  'SELECT id, originalname, mimetype, path, size, until, iv, salt FROM files'
+  'SELECT id, title, originalname, mimetype, path, size, until, iv, salt FROM files'
 )
 const getFileByIdStmt = db.prepare(
-  'SELECT id, originalname, mimetype, path, size, until, iv, salt FROM files WHERE id = ?'
+  'SELECT id, title, originalname, mimetype, path, size, until, iv, salt FROM files WHERE id = ?'
 )
 const deleteFileByIdStmt = db.prepare('DELETE FROM files WHERE id = ?')
 const getExpiredFilePathsStmt = db.prepare('SELECT path FROM files WHERE until < ?')
@@ -65,6 +84,7 @@ const updateFileUntilStmt = db.prepare('UPDATE files SET until = ? WHERE id = ?'
 
 const toDataType = (row: {
   id: string
+  title: string | null
   content: string
   until: number
   pre: number | null
@@ -72,6 +92,7 @@ const toDataType = (row: {
   salt: string | null
 }): DataType => ({
   id: row.id,
+  title: row.title ?? undefined,
   content: row.content,
   until: row.until,
   pre: row.pre === null ? undefined : Boolean(row.pre),
@@ -81,6 +102,7 @@ const toDataType = (row: {
 
 const toServerFileType = (row: {
   id: string
+  title: string | null
   originalname: string
   mimetype: string
   path: string
@@ -90,6 +112,7 @@ const toServerFileType = (row: {
   salt: string | null
 }): ServerFileType => ({
   id: row.id,
+  title: row.title ?? undefined,
   originalname: row.originalname,
   mimetype: row.mimetype,
   path: row.path,
@@ -102,6 +125,7 @@ const toServerFileType = (row: {
 export const insertPaste = (paste: DataType) => {
   insertPasteStmt.run(
     paste.id,
+    paste.title ?? null,
     paste.content,
     paste.until,
     paste.pre === undefined ? null : Number(paste.pre),
@@ -113,6 +137,7 @@ export const insertPaste = (paste: DataType) => {
 export const getPastes = (): Array<DataType> =>
   (getPastesStmt.all() as Array<{
     id: string
+    title: string | null
     content: string
     until: number
     pre: number | null
@@ -124,6 +149,7 @@ export const getPasteById = (id: string): DataType | undefined => {
   const row = getPasteByIdStmt.get(id) as
     | {
         id: string
+        title: string | null
         content: string
         until: number
         pre: number | null
@@ -157,6 +183,7 @@ export const updatePasteUntil = (id: string, until: number): boolean => {
 export const insertFile = (file: ServerFileType) => {
   insertFileStmt.run(
     file.id,
+    file.title ?? null,
     file.originalname,
     file.mimetype,
     file.path,
@@ -170,6 +197,7 @@ export const insertFile = (file: ServerFileType) => {
 export const getFiles = (): Array<ServerFileType> =>
   (getFilesStmt.all() as Array<{
     id: string
+    title: string | null
     originalname: string
     mimetype: string
     path: string
@@ -183,6 +211,7 @@ export const getFileById = (id: string): ServerFileType | undefined => {
   const row = getFileByIdStmt.get(id) as
     | {
         id: string
+        title: string | null
         originalname: string
         mimetype: string
         path: string

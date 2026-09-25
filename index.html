@@ -45,6 +45,17 @@
           <form>
             <div class="options">
               <label
+                >Title :
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  autocomplete="off"
+                  placeholder="optional"
+                  maxlength="200"
+                />
+              </label>
+              <label
                 >Keep :
                 <select name="keep" autocomplete="off">
                   <option value="60">1 minute</option>
@@ -92,6 +103,7 @@
         <div id="pastedData"></div>
         <template id="templatePastedCode">
           <article>
+            <h3 class="title"></h3>
             <pre class="data"></pre>
             <a href="#" class="decrypt">decrypt</a>
             <small class="until">valid until {}</small>
@@ -100,6 +112,7 @@
         </template>
         <template id="templatePastedText">
           <article>
+            <h3 class="title"></h3>
             <blockquote class="data"></blockquote>
             <a href="#" class="decrypt">decrypt</a>
             <small class="until">valid until {}</small>
@@ -115,6 +128,7 @@
         <div id="pastedFiles"></div>
         <template id="templatePastedFile">
           <li>
+            <strong class="title"></strong>
             <a class="pastedFile" target="_blank">{0}</a>
             <small class="size">{}</small>,
             <small class="until">valid until {}</small>
