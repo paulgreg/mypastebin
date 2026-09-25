@@ -23,7 +23,7 @@
       <h1>My pastebin</h1>
     </header>
     <main>
-      <dialog>
+      <dialog id="messageDialog">
         <form>
           <p></p>
           <span>
@@ -38,106 +38,96 @@
           </span>
         </form>
       </dialog>
+      <dialog id="contentDialog">
+        <div class="contentDialogInner">
+          <header>
+            <h3 id="contentDialogTitle"></h3>
+            <button type="button" id="closeContentDialog" aria-label="close">
+              X
+            </button>
+          </header>
+          <pre id="contentDialogBody"></pre>
+        </div>
+      </dialog>
+      <section>
+        <h2>Pasted items</h2>
+        <div id="pastedItems"></div>
+        <template id="templatePastedItem">
+          <article class="card">
+            <button type="button" class="cardMain">
+              <div class="cardTop">
+                <small class="kind"></small>
+                <small class="until">valid until {}</small>
+              </div>
+              <h3 class="title"></h3>
+              <p class="meta"></p>
+              <p class="preview"></p>
+            </button>
+            <div class="cardActions">
+              <a class="add" data-time="3600" href="#">+1h</a>
+              <a class="add" data-time="43200" href="#">+12h</a>
+              <a class="add" data-time="86400" href="#">+24h</a>
+              <a class="removeItem" href="#">delete</a>
+            </div>
+          </article>
+        </template>
+      </section>
       <section id="pastebin">
         <h2>Paste</h2>
-        <details open>
-          <summary>Form</summary>
-          <form>
-            <div class="options">
-              <label
-                >Title :
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  autocomplete="off"
-                  placeholder="optional"
-                  maxlength="200"
-                />
-              </label>
-              <label
-                >Keep :
-                <select name="keep" autocomplete="off">
-                  <option value="60">1 minute</option>
-                  <option value="300" selected>5 minutes</option>
-                  <option value="3600">1 hour</option>
-                  <option value="43200">12 hours</option>
-                  <option value="86400">24 hours</option>
-                  <option value="604000">7 days</option>
-                </select>
-              </label>
-              <label
-                >Type :
-                <select name="type" autocomplete="off">
-                  <option value="type_text" selected>text</option>
-                  <option value="type_code">code</option>
-                  <option value="type_file">file</option>
-                </select>
-              </label>
-            </div>
-            <textarea
-              autocomplete="off"
-              autofocus
-              placeholder="type here what you want to paste..."
-            ></textarea>
-            <input type="file" />
-            <div class="passwordContainer">
-              <label for="password"
-                >Optional password to encrypt data or file :</label
-              >
+        <form>
+          <div class="options">
+            <label
+              >Title :
               <input
                 type="text"
-                id="password"
-                name="password"
-                spellcheck="false"
+                id="title"
+                name="title"
                 autocomplete="off"
-                minlength="6"
+                placeholder="optional"
+                maxlength="200"
               />
-            </div>
-            <input type="submit" value="post" />
-          </form>
-        </details>
-      </section>
-      <section>
-        <h2>Pasted content</h2>
-        <div id="pastedData"></div>
-        <template id="templatePastedCode">
-          <article>
-            <h3 class="title"></h3>
-            <pre class="data"></pre>
-            <a href="#" class="decrypt">decrypt</a>
-            <small class="until">valid until {}</small>
-            <a class="removeData" href="#">delete</a>
-          </article>
-        </template>
-        <template id="templatePastedText">
-          <article>
-            <h3 class="title"></h3>
-            <blockquote class="data"></blockquote>
-            <a href="#" class="decrypt">decrypt</a>
-            <small class="until">valid until {}</small>
-            <a class="add" data-time="3600" href="#">+1h</a>
-            <a class="add" data-time="43200" href="#">+12h</a>
-            <a class="add" data-time="86400" href="#">+24h</a>
-            <a class="removeData" href="#">delete</a>
-          </article>
-        </template>
-      </section>
-      <section>
-        <h2>Pasted files</h2>
-        <div id="pastedFiles"></div>
-        <template id="templatePastedFile">
-          <li>
-            <strong class="title"></strong>
-            <a class="pastedFile" target="_blank">{0}</a>
-            <small class="size">{}</small>,
-            <small class="until">valid until {}</small>
-            <a class="add" data-time="3600" href="#">+1h</a>
-            <a class="add" data-time="43200" href="#">+12h</a>
-            <a class="add" data-time="86400" href="#">+24h</a>
-            <a class="removeFile" href="#">delete</a>
-          </li>
-        </template>
+            </label>
+            <label
+              >Keep :
+              <select name="keep" autocomplete="off">
+                <option value="60">1 minute</option>
+                <option value="300">5 minutes</option>
+                <option value="3600">1 hour</option>
+                <option value="43200">12 hours</option>
+                <option value="86400" selected>24 hours</option>
+                <option value="604000">7 days</option>
+              </select>
+            </label>
+            <label
+              >Type :
+              <select name="type" autocomplete="off">
+                <option value="type_text" selected>text</option>
+                <option value="type_code">code</option>
+                <option value="type_file">file</option>
+              </select>
+            </label>
+          </div>
+          <textarea
+            autocomplete="off"
+            autofocus
+            placeholder="type here what you want to paste..."
+          ></textarea>
+          <input type="file" />
+          <div class="passwordContainer">
+            <label for="password"
+              >Optional password to encrypt data or file :</label
+            >
+            <input
+              type="text"
+              id="password"
+              name="password"
+              spellcheck="false"
+              autocomplete="off"
+              minlength="6"
+            />
+          </div>
+          <input type="submit" value="post" />
+        </form>
       </section>
     </main>
   </body>

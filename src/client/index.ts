@@ -1,7 +1,6 @@
 import {
   ContentTypeEnum,
   ClientFilesType,
-  ClientFileType,
   DatasType,
 } from '../PasteBinTypes.js'
 import { decrypt, decryptBuffer, encrypt, encryptBuffer } from './crypto.js'
@@ -11,9 +10,6 @@ import { MAX_FILE_SIZE } from '../constants.js'
 const origin = import.meta.env.DEV ? 'http://localhost:6080' : '.'
 
 const form = document.querySelector('#pastebin form') as HTMLFormElement
-const details = document.querySelector(
-  '#pastebin details'
-) as HTMLDetailsElement
 const textarea = document.querySelector('textarea') as HTMLTextAreaElement
 const inputFile = document.querySelector('input[type=file]') as HTMLInputElement
 const titleInput = document.querySelector('#title') as HTMLInputElement
@@ -30,43 +26,73 @@ const keepSelect = document.querySelector(
 const typeSelect = document.querySelector(
   'select[name="type"]'
 ) as HTMLSelectElement
-const pastedData = document.querySelector('#pastedData') as HTMLDivElement
-const pastedFiles = document.querySelector('#pastedFiles') as HTMLDivElement
-const templatePastedText = document.querySelector(
-  '#templatePastedText'
+const pastedItems = document.querySelector('#pastedItems') as HTMLDivElement
+const templatePastedItem = document.querySelector(
+  '#templatePastedItem'
 ) as HTMLTemplateElement
-const templatePastedCode = document.querySelector(
-  '#templatePastedCode'
-) as HTMLTemplateElement
-const templatePastedFile = document.querySelector(
-  '#templatePastedFile'
-) as HTMLTemplateElement
-const dialog = document.querySelector('dialog') as HTMLDialogElement
-const dialogMessage = dialog.querySelector('p') as HTMLParagraphElement
+
+const messageDialog = document.querySelector('#messageDialog') as HTMLDialogElement
+const messageDialogText = messageDialog.querySelector('p') as HTMLParagraphElement
+
+const contentDialog = document.querySelector('#contentDialog') as HTMLDialogElement
+const contentDialogTitle = document.querySelector(
+  '#contentDialogTitle'
+) as HTMLHeadingElement
+const contentDialogBody = document.querySelector(
+  '#contentDialogBody'
+) as HTMLPreElement
+const closeContentDialogButton = document.querySelector(
+  '#closeContentDialog'
+) as HTMLButtonElement
 
 const TYPE_TEXT = 'type_text'
 const TYPE_CODE = 'type_code'
 const TYPE_FILE = 'type_file'
+
+type UnifiedDataItem = {
+  itemType: ContentTypeEnum.data
+  id: string
+  title?: string
+  content: string
+  until: number
+  kind: 'text' | 'code'
+  encrypted: boolean
+  iv?: string
+  salt?: string
+}
+
+type UnifiedFileItem = {
+  itemType: ContentTypeEnum.file
+  id: string
+  title?: string
+  originalname: string
+  mimetype: string
+  size: number
+  until: number
+  kind: 'file'
+  encrypted: boolean
+  iv?: string
+  salt?: string
+}
+
+type UnifiedItem = UnifiedDataItem | UnifiedFileItem
 
 typeSelect.addEventListener('change', (e: Event) => {
   const target = e.target as HTMLSelectElement
   if (target.value === TYPE_FILE) {
     inputFile.style.display = 'inline-block'
     textarea.style.display = 'none'
-    passwordContainer.style.display = 'flex'
   } else {
     inputFile.style.display = 'none'
     textarea.style.display = 'inline-block'
-    passwordContainer.style.display = 'flex'
   }
+  passwordContainer.style.display = 'flex'
 })
 
-const closeDetails = () => details.removeAttribute('open')
-
 const displayMessage = (msg: string, error: boolean) => {
-  dialogMessage.innerText = msg
-  dialogMessage.classList[error ? 'add' : 'remove']('error')
-  dialog.showModal()
+  messageDialogText.innerText = msg
+  messageDialogText.classList[error ? 'add' : 'remove']('error')
+  messageDialog.showModal()
 }
 
 const parseOptionalTitle = (value: string) => {
@@ -74,16 +100,8 @@ const parseOptionalTitle = (value: string) => {
   return trimmedValue.length > 0 ? trimmedValue : undefined
 }
 
-const setTemplateTitle = (element: ParentNode, title?: string) => {
-  const titleEl = element.querySelector('.title') as HTMLElement | null
-  if (!titleEl) return
-  if (title) {
-    titleEl.textContent = title
-    titleEl.style.removeProperty('display')
-  } else {
-    titleEl.textContent = ''
-    titleEl.style.display = 'none'
-  }
+const setTemplateTitle = (titleEl: HTMLElement, title: string) => {
+  titleEl.textContent = title
 }
 
 const downloadAsFile = (
@@ -102,84 +120,199 @@ const downloadAsFile = (
   URL.revokeObjectURL(url)
 }
 
-const decryptData = (id: string, salt: string, iv: string) => (e: Event) => {
-  e.preventDefault()
-  e.stopPropagation()
-  const userPassword = prompt('password ?')
-
-  const article = document.getElementById(id)
-  const data = article?.querySelector('.data')
-  if (!userPassword || !data?.textContent) throw new Error('Can’t continue')
-  decrypt(userPassword, salt, iv, data.textContent)
-    .then((msg) => {
-      article?.classList.remove('encrypted')
-      data.textContent = msg
-    })
-    .catch((e) => {
-      displayMessage('decryption failed, bad password ?', true)
-      console.error(e)
-    })
+const openContentDialog = (title: string, content: string) => {
+  contentDialogTitle.textContent = title
+  contentDialogBody.textContent = content
+  contentDialog.showModal()
 }
 
-const fetchData = () =>
-  fetch(`${origin}/api/data`)
-    .then((response) => response.json())
-    .then((data: DatasType) => {
-      if (data.length === 0) {
-        pastedData.innerHTML = 'No data posted'
+closeContentDialogButton.addEventListener('click', () => {
+  contentDialog.close()
+})
+
+contentDialog.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement
+  if (target === contentDialog) {
+    contentDialog.close()
+  }
+})
+
+const downloadFile = (file: UnifiedFileItem) => {
+  if (file.encrypted && file.iv && file.salt) {
+    const userPassword = prompt('password ?')
+    if (!userPassword) return
+    fetch(`${origin}/api/file/${file.id}`)
+      .then((response) => {
+        if (response.status !== 200) {
+          throw new Error(`error: ${response.status}`)
+        }
+        return response.arrayBuffer()
+      })
+      .then((encryptedContent) =>
+        decryptBuffer(userPassword, file.salt ?? '', file.iv ?? '', encryptedContent)
+      )
+      .then((decryptedContent) => {
+        downloadAsFile(decryptedContent, file.originalname, file.mimetype)
+      })
+      .catch((e) => {
+        console.error(e)
+        displayMessage('decryption failed, bad password ?', true)
+      })
+    return
+  }
+
+  const link = document.createElement('a')
+  link.href = `${origin}/api/file/${file.id}`
+  link.download = file.originalname
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+const fetchItems = () =>
+  Promise.all([
+    fetch(`${origin}/api/data`).then((response) => response.json() as Promise<DatasType>),
+    fetch(`${origin}/api/files`).then(
+      (response) => response.json() as Promise<ClientFilesType>
+    ),
+  ])
+    .then(([datas, files]) => {
+      const dataItems: Array<UnifiedDataItem> = datas.map((item) => ({
+        itemType: ContentTypeEnum.data,
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        until: item.until,
+        kind: item.pre ? 'code' : 'text',
+        encrypted: Boolean(item.iv && item.salt),
+        iv: item.iv,
+        salt: item.salt,
+      }))
+
+      const fileItems: Array<UnifiedFileItem> = files.map((file) => ({
+        itemType: ContentTypeEnum.file,
+        id: file.id,
+        title: file.title,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        until: file.until,
+        kind: 'file',
+        encrypted: Boolean(file.iv && file.salt),
+        iv: file.iv,
+        salt: file.salt,
+      }))
+
+      const items: Array<UnifiedItem> = [...dataItems, ...fileItems].sort(
+        (a, b) => a.until - b.until
+      )
+
+      if (items.length === 0) {
+        pastedItems.textContent = 'No item posted'
         return
       }
 
-      closeDetails()
-
-      pastedData.innerHTML = ''
-
+      pastedItems.innerHTML = ''
       const fragment = new DocumentFragment()
 
-      data.forEach((item) => {
-        const template = item.pre ? templatePastedCode : templatePastedText
-        const child = document.importNode(template.content, true)
-        setTemplateTitle(child, item.title)
-        const article = child.querySelector('article')
-        article?.setAttribute('id', item.id)
-        if (item.iv && item.salt) {
-          article?.classList.add('encrypted')
-          const decryptLink = child.querySelector('.decrypt')
-          decryptLink?.addEventListener(
+      items.forEach((item) => {
+        const child = document.importNode(templatePastedItem.content, true)
+        const article = child.querySelector('article') as HTMLElement | null
+        const cardMain = child.querySelector('.cardMain') as HTMLButtonElement | null
+        const kind = child.querySelector('.kind') as HTMLElement | null
+        const title = child.querySelector('.title') as HTMLElement | null
+        const meta = child.querySelector('.meta') as HTMLElement | null
+        const preview = child.querySelector('.preview') as HTMLElement | null
+        const until = child.querySelector('.until') as HTMLElement | null
+        const removeLink = child.querySelector('.removeItem') as HTMLAnchorElement | null
+
+        if (!article || !cardMain || !kind || !title || !meta || !preview || !until) {
+          return
+        }
+
+        article.setAttribute('id', item.id)
+        kind.textContent = item.kind
+        until.textContent = until.textContent?.replace('{}', formatDate(item.until)) ?? ''
+
+        if (item.itemType === ContentTypeEnum.file) {
+          setTemplateTitle(title, item.title ?? item.originalname)
+          meta.textContent = `${item.originalname} • ${formatSize(item.size)}${
+            item.encrypted ? ' • encrypted' : ''
+          }`
+          preview.textContent = 'Click to download file'
+          cardMain.addEventListener('click', () => downloadFile(item), false)
+        } else {
+          setTemplateTitle(
+            title,
+            item.title ?? (item.kind === 'code' ? 'Untitled code' : 'Untitled text')
+          )
+          meta.textContent = `${item.content.length} chars${
+            item.encrypted ? ' • encrypted' : ''
+          }`
+          preview.textContent = item.encrypted ? 'Encrypted content' : item.content
+
+          if (item.encrypted) {
+            article.classList.add('encrypted')
+          }
+
+          cardMain.addEventListener(
             'click',
-            decryptData(item.id, item.salt, item.iv),
+            () => {
+              if (item.encrypted && item.iv && item.salt) {
+                const userPassword = prompt('password ?')
+                if (!userPassword) return
+
+                decrypt(userPassword, item.salt, item.iv, item.content)
+                  .then((msg) => {
+                    item.content = msg
+                    item.encrypted = false
+                    article.classList.remove('encrypted')
+                    preview.textContent = msg
+                    meta.textContent = `${msg.length} chars`
+                  })
+                  .catch((error) => {
+                    displayMessage('decryption failed, bad password ?', true)
+                    console.error(error)
+                  })
+                return
+              }
+
+              openContentDialog(title.textContent ?? 'Untitled', item.content)
+            },
             false
           )
         }
-        const data = child.querySelector('.data')
-        if (data) data.textContent = item.content
-        const until = child.querySelector('.until')
-        if (until?.textContent)
-          until.textContent = until.textContent.replace(
-            '{}',
-            formatDate(item.until)
-          )
-        child
-          .querySelector('a.removeData')
-          ?.addEventListener(
-            'click',
-            removeDataOrFile(ContentTypeEnum.data, item.id),
-            false
-          )
+
+        removeLink?.addEventListener(
+          'click',
+          removeDataOrFile(
+            item.itemType,
+            item.id,
+            item.itemType === ContentTypeEnum.file
+              ? item.originalname
+              : title.textContent ?? 'data'
+          ),
+          false
+        )
 
         child
           .querySelectorAll('a.add')
           .forEach((addEl) =>
             addEl.addEventListener(
               'click',
-              keepDataOrFile(ContentTypeEnum.data, item.id),
+              keepDataOrFile(item.itemType, item.id),
               false
             )
           )
 
         fragment.append(child)
       })
-      pastedData.appendChild(fragment)
+
+      pastedItems.appendChild(fragment)
+    })
+    .catch((e) => {
+      console.error(e)
+      displayMessage('Failed to refresh list', true)
     })
 
 const postFile = (file: File, keep: number, title?: string) => {
@@ -233,7 +366,7 @@ const postFile = (file: File, keep: number, title?: string) => {
         inputFile.value = ''
         titleInput.value = ''
         passwordInput.value = ''
-        fetchFiles()
+        fetchItems()
         displayMessage('file posted', false)
       } else {
         throw new Error(`error: ${response.status}`)
@@ -243,36 +376,6 @@ const postFile = (file: File, keep: number, title?: string) => {
       submitButton.disabled = false
       console.error(e)
       displayMessage('Error while posting file', true)
-    })
-}
-
-const decryptAndDownloadFile = (file: ClientFileType) => (e: Event) => {
-  e.preventDefault()
-  e.stopPropagation()
-  const userPassword = prompt('password ?')
-  if (!userPassword || !file.iv || !file.salt) return
-
-  fetch(`${origin}/api/file/${file.id}`)
-    .then((response) => {
-      if (response.status !== 200) {
-        throw new Error(`error: ${response.status}`)
-      }
-      return response.arrayBuffer()
-    })
-    .then((encryptedContent) =>
-      decryptBuffer(
-        userPassword,
-        file.salt ?? '',
-        file.iv ?? '',
-        encryptedContent
-      )
-    )
-    .then((decryptedContent) => {
-      downloadAsFile(decryptedContent, file.originalname, file.mimetype)
-    })
-    .catch((e) => {
-      console.error(e)
-      displayMessage('decryption failed, bad password ?', true)
     })
 }
 
@@ -336,14 +439,14 @@ const postDataOrFile = (e: SubmitEvent | KeyboardEvent) => {
           textarea.value = ''
           titleInput.value = ''
           passwordInput.value = ''
-          fetchData()
+          fetchItems()
           displayMessage('data posted', false)
         } else {
           throw new Error(`error: ${response.status}`)
         }
       })
-      .catch((e) => {
-        console.error(e)
+      .catch((error) => {
+        console.error(error)
         displayMessage('Error while posting data', true)
       })
   }
@@ -358,11 +461,10 @@ const keepDataOrFile = (type: ContentTypeEnum, id: string) => (e: Event) => {
     method: 'GET',
   })
     .then(() => {
-      if (type === ContentTypeEnum.data) fetchData()
-      else if (type === ContentTypeEnum.file) fetchFiles()
+      fetchItems()
     })
-    .catch((e) => {
-      console.error(e)
+    .catch((error) => {
+      console.error(error)
     })
 }
 
@@ -375,74 +477,13 @@ const removeDataOrFile =
         method: 'DELETE',
       })
         .then(() => {
-          if (type === ContentTypeEnum.data) fetchData()
-          else if (type === ContentTypeEnum.file) fetchFiles()
+          fetchItems()
         })
-        .catch((e) => {
-          console.error(e)
+        .catch((error) => {
+          console.error(error)
         })
     }
   }
-
-const fetchFiles = () =>
-  fetch(`${origin}/api/files`)
-    .then((response) => response.json())
-    .then((data: ClientFilesType) => {
-      if (data.length === 0) {
-        pastedFiles.innerHTML = 'No file posted'
-        return
-      }
-      closeDetails()
-
-      pastedFiles.innerHTML = ''
-
-      const fragment = document.createElement('ul')
-      data.forEach((file) => {
-        const child = document.importNode(templatePastedFile.content, true)
-        setTemplateTitle(child, file.title ?? file.originalname)
-        const a = child.querySelector('a.pastedFile') as HTMLAnchorElement
-        if (!a) throw new Error('Missing a')
-        const encrypted = !!file.iv && !!file.salt
-        a.textContent = `${file.originalname}${encrypted ? ' (encrypted)' : ''}`
-        if (encrypted) {
-          a.setAttribute('href', '#')
-          a.removeAttribute('target')
-          a.addEventListener('click', decryptAndDownloadFile(file), false)
-        } else {
-          a.setAttribute('href', `${origin}/api/file/${file.id}`)
-        }
-        const size = child.querySelector('.size')
-        if (!size) return
-        size.textContent = formatSize(file.size)
-        const until = child.querySelector('.until')
-        if (!until?.textContent) return
-        until.textContent = until.textContent.replace(
-          '{}',
-          formatDate(file.until)
-        )
-        const removeLink = child.querySelector(
-          'a.removeFile'
-        ) as HTMLAnchorElement
-        removeLink.addEventListener(
-          'click',
-          removeDataOrFile(ContentTypeEnum.file, file.id),
-          false
-        )
-
-        child
-          .querySelectorAll('a.add')
-          .forEach((addEl) =>
-            addEl.addEventListener(
-              'click',
-              keepDataOrFile(ContentTypeEnum.file, file.id),
-              false
-            )
-          )
-
-        fragment.append(child)
-      })
-      pastedFiles.appendChild(fragment)
-    })
 
 textarea?.addEventListener(
   'keydown',
@@ -460,5 +501,4 @@ inputFile?.addEventListener('change', () => {
   titleInput.value = file.name
 })
 
-fetchData()
-fetchFiles()
+fetchItems()

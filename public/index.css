@@ -1,28 +1,66 @@
+:root {
+  --surface: #f4f6f8;
+  --surface-strong: #ffffff;
+  --border: #d9dee4;
+  --text-muted: #556170;
+  --accent: #1565c0;
+  --accent-soft: #d9ebff;
+  --danger: #c62828;
+  --shadow: 0 10px 30px rgba(17, 25, 40, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1b1f24;
+    --surface-strong: #242a31;
+    --border: #39424d;
+    --text-muted: #b4c0ce;
+    --accent: #86c5ff;
+    --accent-soft: #1f3a52;
+    --danger: #ff8a80;
+    --shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+
 body {
-  max-width: 90%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+main {
+  display: grid;
+  gap: 1rem;
+}
+
+section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
 }
 
 select[name='type'] {
-  min-width: 80px;
+  min-width: 92px;
   width: auto;
 }
 
 select[name='keep'] {
-  min-width: 120px;
+  min-width: 128px;
   width: auto;
 }
 
 .options {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5em;
-  justify-content: space-evenly;
+  gap: 0.65rem;
+  align-items: center;
 }
 
 .options label {
   display: flex;
   align-items: center;
-  gap: 0.3em;
+  gap: 0.4rem;
 }
 
 input[name='title'] {
@@ -32,9 +70,10 @@ input[name='title'] {
 
 textarea {
   width: 100%;
-  height: 100px;
+  height: 120px;
   margin-bottom: 0;
   display: inline-block;
+  border-radius: 8px;
 }
 
 .passwordContainer {
@@ -42,7 +81,7 @@ textarea {
   flex-direction: column;
 }
 
-@media (min-width: 700px) {
+@media (min-width: 760px) {
   .passwordContainer {
     align-items: center;
     flex-direction: row;
@@ -51,7 +90,7 @@ textarea {
 
 .passwordContainer label {
   flex-shrink: 0;
-  margin-right: 0.5em;
+  margin-right: 0.5rem;
 }
 
 .passwordContainer input {
@@ -68,65 +107,163 @@ input[type='file'] {
   display: none;
 }
 
-article {
-  margin-bottom: 2em;
+#pastedItems {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 880px) {
+  #pastedItems {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.cardMain {
+  all: unset;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.9rem;
+  cursor: pointer;
+}
+
+.cardMain:hover {
+  background: var(--accent-soft);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.kind {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.until,
+.meta {
+  color: var(--text-muted);
 }
 
 .title {
-  margin: 0 0 0.25em;
+  margin: 0.35rem 0 0.2rem;
+  line-height: 1.2;
 }
 
-blockquote {
-  margin-left: 0.5em;
-  white-space: break-spaces;
+.meta {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
-.decrypt {
-  display: none;
-}
-
-.encrypted pre,
-.encrypted blockquote {
-  white-space: nowrap;
+.preview {
+  margin: 0.55rem 0 0;
+  white-space: pre-wrap;
   overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.encrypted .preview {
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.encrypted .decrypt {
-  display: block;
-}
-
-.data {
-  margin-bottom: 0;
-}
-
-dialog {
-  width: 80%;
-  background-color: beige;
-}
-dialog form {
+.cardActions {
   display: flex;
-}
-dialog form p {
-  flex-grow: 1;
-}
-dialog::backdrop {
-  background: rgba(150, 150, 150, 0.25);
-}
-.error {
-  color: red;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0 0.9rem 0.8rem;
 }
 
 a.add,
-a.removeData,
-a.removeFile {
-  padding: 0 0.2em;
+a.removeItem {
   cursor: pointer;
-  font-size: small;
+  font-size: 0.85rem;
   text-decoration: underline;
 }
 
-a.removeData,
-a.removeFile {
-  color: red;
+a.removeItem {
+  color: var(--danger);
+}
+
+dialog#messageDialog {
+  width: min(560px, 90vw);
+}
+
+dialog#messageDialog form {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+dialog#messageDialog form p {
+  flex-grow: 1;
+}
+
+dialog#messageDialog::backdrop {
+  background: rgba(50, 50, 50, 0.28);
+}
+
+#contentDialog {
+  width: min(1100px, 96vw);
+  height: min(92vh, 860px);
+  padding: 0;
+}
+
+.contentDialogInner {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.contentDialogInner header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 3rem;
+}
+
+#contentDialogTitle {
+  color: var(--accent);
+  margin: 0;
+}
+
+#closeContentDialog {
+  min-width: 44px;
+}
+
+#contentDialogBody {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+#contentDialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.error {
+  color: var(--danger);
 }
