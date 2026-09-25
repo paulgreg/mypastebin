@@ -7,11 +7,11 @@ const AES_KEY_BIT_LENGTH = 256
 const STRING_CONVERSION_CHUNK_SIZE = 8192
 
 const bufferSourceToUint8Array = (input: BufferSource) => {
-  if (input instanceof ArrayBuffer) {
-    return new Uint8Array(input)
+  if (ArrayBuffer.isView(input)) {
+    return new Uint8Array(input.buffer, input.byteOffset, input.byteLength)
   }
 
-  return new Uint8Array(input.buffer, input.byteOffset, input.byteLength)
+  return new Uint8Array(input)
 }
 
 export const arrayBufferToString = (buf: BufferSource) => {
