@@ -17,15 +17,15 @@
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "express": "^5.2.1",
-    "multer": "^2.2.0",
-    "tsx": "^4.23.12",
+    "multer": "^2.4.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "uuid": "^14.0.1"
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
-    "jest-environment-jsdom": "^30.4.1",
-    "vitest": "^4.1.10"
+    "jest-environment-jsdom": "^30.5.2",
+    "vitest": "^5.0.2"
   }
 }
