@@ -125,6 +125,11 @@ input[type='file'] {
   background: var(--surface-strong);
   box-shadow: var(--shadow);
   overflow: hidden;
+  transition: background 0.15s ease;
+}
+
+.card:hover {
+  background: var(--accent-soft);
 }
 
 .cardMain {
@@ -134,10 +139,6 @@ input[type='file'] {
   box-sizing: border-box;
   padding: 0.9rem;
   cursor: pointer;
-}
-
-.cardMain:hover {
-  background: var(--accent-soft);
 }
 
 .cardTop {
@@ -242,6 +243,18 @@ dialog#messageDialog::backdrop {
   gap: 0.75rem;
   border-bottom: 1px solid var(--border);
   padding: 0.85rem 3rem;
+  width: auto;
+  margin-left: 0;
+  margin-right: 0;
+  left: auto;
+  right: auto;
+  position: static;
+}
+
+.contentDialogActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 #contentDialogTitle {
@@ -257,7 +270,10 @@ dialog#messageDialog::backdrop {
   margin: 0;
   padding: 1rem;
   overflow: auto;
+  overscroll-behavior: contain;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 #contentDialog::backdrop {

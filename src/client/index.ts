@@ -41,9 +41,15 @@ const contentDialogTitle = document.querySelector(
 const contentDialogBody = document.querySelector(
   '#contentDialogBody'
 ) as HTMLPreElement
+const copyContentDialogButton = document.querySelector(
+  '#copyContentDialog'
+) as HTMLButtonElement
 const closeContentDialogButton = document.querySelector(
   '#closeContentDialog'
 ) as HTMLButtonElement
+
+const COPY_BUTTON_LABEL = 'copy'
+let copyFeedbackTimeoutId: number | null = null
 
 const TYPE_TEXT = 'type_text'
 const TYPE_CODE = 'type_code'
@@ -123,8 +129,52 @@ const downloadAsFile = (
 const openContentDialog = (title: string, content: string) => {
   contentDialogTitle.textContent = title
   contentDialogBody.textContent = content
+  copyContentDialogButton.textContent = COPY_BUTTON_LABEL
   contentDialog.showModal()
 }
+
+const showCopyFeedback = (label: string) => {
+  copyContentDialogButton.textContent = label
+  if (copyFeedbackTimeoutId !== null) {
+    window.clearTimeout(copyFeedbackTimeoutId)
+  }
+  copyFeedbackTimeoutId = window.setTimeout(() => {
+    copyContentDialogButton.textContent = COPY_BUTTON_LABEL
+    copyFeedbackTimeoutId = null
+  }, 1200)
+}
+
+const copyContentText = async (content: string) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(content)
+    return
+  }
+
+  const temporaryTextarea = document.createElement('textarea')
+  temporaryTextarea.value = content
+  temporaryTextarea.setAttribute('readonly', '')
+  temporaryTextarea.style.position = 'fixed'
+  temporaryTextarea.style.left = '-9999px'
+  document.body.appendChild(temporaryTextarea)
+  temporaryTextarea.select()
+  const hasCopied = document.execCommand('copy')
+  temporaryTextarea.remove()
+
+  if (!hasCopied) {
+    throw new Error('Copy failed')
+  }
+}
+
+copyContentDialogButton.addEventListener('click', () => {
+  copyContentText(contentDialogBody.textContent ?? '')
+    .then(() => {
+      showCopyFeedback('copied!')
+    })
+    .catch((error) => {
+      console.error(error)
+      showCopyFeedback('failed')
+    })
+})
 
 closeContentDialogButton.addEventListener('click', () => {
   contentDialog.close()
@@ -269,6 +319,7 @@ const fetchItems = () =>
                     article.classList.remove('encrypted')
                     preview.textContent = msg
                     meta.textContent = `${msg.length} chars`
+                    openContentDialog(title.textContent ?? 'Untitled', msg)
                   })
                   .catch((error) => {
                     displayMessage('decryption failed, bad password ?', true)
